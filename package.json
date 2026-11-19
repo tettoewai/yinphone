@@ -5,6 +5,7 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "db:migrate": "pnpm --filter api exec prisma migrate dev",
     "lint": "turbo lint",
     "format": "turbo format",
     "typecheck": "turbo typecheck",
