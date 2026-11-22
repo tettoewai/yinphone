@@ -1,19 +1,79 @@
-import { Button } from "@workspace/ui/components/button"
+import Link from "next/link"
+
+import AppHeader from "@/components/app-header"
+import ContactTeaser from "@/components/contact-teaser"
+import Hero from "@/components/hero"
+import ProductCard from "@/components/product-card"
+import QuickCategories from "@/components/quick-categories"
+import TrustStrip from "@/components/trust-strip"
+import { getFeaturedProducts } from "@/components/catalog-data"
+
+const featured = getFeaturedProducts()
 
 export default function Page() {
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
+    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body">
+      <AppHeader />
+      <Hero />
+
+      <section className="flex flex-col gap-2.5 pt-5">
+        <div className="flex items-center justify-between px-4">
+          <h2 className="font-heading text-base font-bold text-foreground">
+            Shop by category
+          </h2>
+          <Link href="/catalog" className="text-sm font-semibold text-primary">
+            See all
+          </Link>
         </div>
-        <div className="text-muted-foreground font-mono text-xs">
-          (Press <kbd>d</kbd> to toggle dark mode)
+        <QuickCategories />
+      </section>
+
+      <section className="flex flex-col gap-3 pt-6">
+        <div className="flex items-end justify-between px-4">
+          <div>
+            <h2 className="font-body text-2xl leading-[1.7] font-bold text-foreground">
+              ရောက်ရှိလာသော ဒီဇိုင်းသစ်များ
+            </h2>
+            <div className="text-sm text-muted-foreground">New arrivals</div>
+          </div>
+          <Link
+            href="/catalog?sort=newest"
+            className="shrink-0 pb-1 text-sm font-semibold text-primary"
+          >
+            View all
+          </Link>
         </div>
-      </div>
+
+        <div className="grid grid-cols-2 gap-3 px-4">
+          {featured.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+
+        <div className="px-4">
+          <Link
+            href="/catalog?sort=newest"
+            className="flex min-h-[44px] w-full items-center justify-center rounded-md border border-border bg-card text-sm font-semibold text-primary"
+          >
+            View all new arrivals
+          </Link>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-2.5 pt-6">
+        <h2 className="px-4 font-heading text-base font-bold text-foreground">
+          Why shop with YinPhone?
+        </h2>
+        <div className="px-4">
+          <TrustStrip />
+        </div>
+      </section>
+
+      <section className="pt-6 pb-6">
+        <div className="px-4">
+          <ContactTeaser />
+        </div>
+      </section>
     </div>
   )
 }
