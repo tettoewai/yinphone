@@ -1,7 +1,8 @@
 import { Layers, Shirt, Sparkles, Store, type LucideIcon } from "lucide-react"
-import Link from "next/link"
+import { getTranslations } from "next-intl/server"
 
 import type { CatalogCategory } from "@/components/catalog-data"
+import { Link } from "@/i18n/navigation"
 
 /** Icon per category slug; unknown slugs fall back to a generic shop icon. */
 const ICONS: Record<string, LucideIcon> = {
@@ -14,7 +15,11 @@ type QuickCategoriesProps = {
   categories: CatalogCategory[]
 }
 
-export default function QuickCategories({ categories }: QuickCategoriesProps) {
+export default async function QuickCategories({
+  categories,
+}: QuickCategoriesProps) {
+  const t = await getTranslations("Catalog")
+
   return (
     <div className="flex gap-3 overflow-x-auto px-4 py-1">
       <Link
@@ -26,9 +31,8 @@ export default function QuickCategories({ categories }: QuickCategoriesProps) {
         </div>
         <div className="text-center leading-tight">
           <div className="font-body text-xs font-semibold text-foreground">
-            အားလုံး
+            {t("all")}
           </div>
-          <div className="text-xs text-muted-foreground">All</div>
         </div>
       </Link>
 
@@ -46,10 +50,7 @@ export default function QuickCategories({ categories }: QuickCategoriesProps) {
             </div>
             <div className="text-center leading-tight">
               <div className="font-body text-xs font-semibold text-foreground">
-                {category.nameMy}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {category.nameEn}
+                {category.name}
               </div>
             </div>
           </Link>

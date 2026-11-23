@@ -1,15 +1,12 @@
 "use client"
 
 import { Heart } from "lucide-react"
-import Link from "next/link"
+import { useTranslations } from "next-intl"
 
 import CatalogCard from "@/components/catalog-card"
 import CatalogHeader from "@/components/catalog-header"
-import {
-  pickByIds,
-  toMyanmarDigits,
-  type CatalogProduct,
-} from "@/components/catalog-data"
+import { pickByIds, type CatalogProduct } from "@/components/catalog-data"
+import { Link } from "@/i18n/navigation"
 import { useFavourites } from "@/lib/favourites"
 
 type SavedViewProps = {
@@ -18,13 +15,15 @@ type SavedViewProps = {
 }
 
 export default function SavedView({ products }: SavedViewProps) {
+  const t = useTranslations("Saved")
+  const common = useTranslations("Common")
   const { ids, isReady, clear } = useFavourites()
   const saved = pickByIds(products, ids)
 
   if (!isReady) {
     return (
       <>
-        <CatalogHeader title="သိမ်းထားသော" subtitle="Saved items" />
+        <CatalogHeader title={t("title")} subtitle={t("empty.title")} />
         <div className="grid grid-cols-2 gap-3 px-4 pt-4">
           {Array.from({ length: 4 }, (_, index) => (
             <div
@@ -40,8 +39,8 @@ export default function SavedView({ products }: SavedViewProps) {
   return (
     <>
       <CatalogHeader
-        title="သိမ်းထားသော ပစ္စည်းများ"
-        subtitle={`Saved items • ${toMyanmarDigits(saved.length)}`}
+        title={t("title")}
+        subtitle={t("count", { count: saved.length })}
       />
 
       {saved.length === 0 ? (
@@ -50,37 +49,30 @@ export default function SavedView({ products }: SavedViewProps) {
             <Heart className="size-[34px] text-primary" strokeWidth={1.6} />
           </div>
           <div className="font-body text-base leading-[1.7] font-semibold text-foreground">
-            သိမ်းထားသော ပစ္စည်း မရှိသေးပါ
-          </div>
-          <div className="-mt-2 text-sm text-muted-foreground">
-            No saved items yet
+            {t("empty.title")}
           </div>
           <p className="max-w-[280px] font-body text-sm leading-[1.8] text-muted-foreground">
-            ကြိုက်နှစ်သက်သော အထည်ပေါ်ရှိ နှလုံးသင်္ကေတကို နှိပ်ပြီး
-            သိမ်းထားနိုင်ပါတယ်။
+            {t("empty.hint")}
           </p>
           <Link
             href="/catalog"
             className="mt-1 flex min-h-[48px] items-center justify-center rounded-md bg-primary px-6 text-sm font-bold text-primary-foreground"
           >
-            Browse collection
+            {common("browseCollection")}
           </Link>
         </div>
       ) : (
         <>
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <div className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">
-                {saved.length}
-              </span>{" "}
-              မျိုး • saved
+              {t("count", { count: saved.length })}
             </div>
             <button
               type="button"
               onClick={clear}
               className="min-h-[44px] text-sm font-semibold text-primary"
             >
-              အားလုံး ဖယ်ရှားမည်
+              {t("clearAll")}
             </button>
           </div>
           <div className="grid grid-cols-2 gap-3 px-4 pb-6">

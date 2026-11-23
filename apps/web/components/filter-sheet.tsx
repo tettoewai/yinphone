@@ -1,6 +1,7 @@
 "use client"
 
 import { Check } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 
 import { cn } from "@workspace/ui/lib/utils"
@@ -10,7 +11,6 @@ import {
   PRICE_RANGES,
   SIZES,
   filterProducts,
-  toMyanmarDigits,
   type CatalogCategory,
   type CatalogFilters,
   type CatalogProduct,
@@ -35,6 +35,8 @@ export default function FilterSheet({
   onApply,
   onClose,
 }: FilterSheetProps) {
+  const t = useTranslations("Catalog.filterSheet")
+  const ranges = useTranslations("Catalog.priceRanges")
   const [draft, setDraft] = useState<CatalogFilters>(initialFilters)
   const resultCount = filterProducts(products, draft).length
 
@@ -61,8 +63,8 @@ export default function FilterSheet({
 
   return (
     <BottomSheet
-      title="စစ်ထုတ်ရန်"
-      description="Filter products"
+      title={t("title")}
+      description={t("description")}
       onClose={onClose}
       footer={
         <div className="flex gap-2">
@@ -71,21 +73,23 @@ export default function FilterSheet({
             onClick={() => setDraft(EMPTY_DRAFT)}
             className="min-h-[48px] flex-1 rounded-md border border-border bg-card font-body text-sm font-semibold text-foreground"
           >
-            ရှင်းလင်းမည်
+            {t("clear")}
           </button>
           <button
             type="button"
             onClick={() => onApply(draft)}
             className="min-h-[48px] flex-[2] rounded-md bg-accent text-sm font-bold text-accent-foreground"
           >
-            ရလဒ် {toMyanmarDigits(resultCount)} ခု ပြမည်
+            {t("apply", { count: resultCount })}
           </button>
         </div>
       }
     >
       <div className="flex flex-col gap-4 px-4 pb-1">
         <div className="flex flex-col gap-2">
-          <div className="text-sm font-semibold text-foreground">Category</div>
+          <div className="text-sm font-semibold text-foreground">
+            {t("category")}
+          </div>
           <div className="flex flex-wrap gap-2">
             {categories.map((category) => {
               const selected = draft.category === category.slug
@@ -102,7 +106,7 @@ export default function FilterSheet({
                       : "border border-border bg-card font-medium text-foreground"
                   )}
                 >
-                  {category.nameMy}
+                  {category.name}
                 </button>
               )
             })}
@@ -111,11 +115,19 @@ export default function FilterSheet({
 
         <div className="flex flex-col gap-2">
           <div className="text-sm font-semibold text-foreground">
-            Price (MMK)
+            {t("price")}
           </div>
           <div className="flex flex-col gap-2">
             {PRICE_RANGES.map((range) => {
               const selected = draft.price === range.id
+              const label =
+                range.id === "over-50k"
+                  ? ranges("above", { min: range.min })
+                  : ranges("between", {
+                      min: range.min,
+                      max: range.max ?? range.min,
+                    })
+
               return (
                 <button
                   key={range.id}
@@ -129,7 +141,7 @@ export default function FilterSheet({
                       : "border border-border bg-card text-foreground"
                   )}
                 >
-                  <span>{range.label}</span>
+                  <span>{label}</span>
                   {selected ? (
                     <Check className="size-4 text-primary" strokeWidth={3} />
                   ) : null}
@@ -140,7 +152,9 @@ export default function FilterSheet({
         </div>
 
         <div className="flex flex-col gap-2">
-          <div className="text-sm font-semibold text-foreground">Size</div>
+          <div className="text-sm font-semibold text-foreground">
+            {t("size")}
+          </div>
           <div className="flex gap-2">
             {SIZES.map((size) => {
               const selected = draft.size === size

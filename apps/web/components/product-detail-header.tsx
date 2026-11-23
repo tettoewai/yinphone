@@ -1,20 +1,22 @@
 "use client"
 
 import { ArrowLeft, Check, Share2 } from "lucide-react"
-import Link from "next/link"
+import { useTranslations } from "next-intl"
 import { useEffect, useRef, useState } from "react"
 
+import { Link } from "@/i18n/navigation"
+
 type ProductDetailHeaderProps = {
-  categoryEn: string
-  categoryMy: string
+  categoryName: string
 }
 
 export default function ProductDetailHeader({
-  categoryEn,
-  categoryMy,
+  categoryName,
 }: ProductDetailHeaderProps) {
   const [isCopied, setIsCopied] = useState(false)
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const t = useTranslations("Product")
+  const common = useTranslations("Common")
 
   useEffect(() => {
     return () => {
@@ -48,20 +50,20 @@ export default function ProductDetailHeader({
     <header className="flex items-center justify-between border-b border-border bg-background/95 px-3 py-2">
       <Link
         href="/catalog"
-        aria-label="Back to catalog"
+        aria-label={t("backToCatalog")}
         className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md"
       >
         <ArrowLeft className="size-[22px] text-foreground" strokeWidth={2.2} />
       </Link>
 
       <div className="min-w-0 flex-1 truncate text-center text-sm font-semibold text-muted-foreground">
-        {categoryEn} / {categoryMy}
+        {categoryName}
       </div>
 
       <button
         type="button"
         onClick={share}
-        aria-label={isCopied ? "Link copied" : "Share product"}
+        aria-label={isCopied ? common("linkCopied") : common("shareProduct")}
         className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md border border-border bg-card"
       >
         {isCopied ? (

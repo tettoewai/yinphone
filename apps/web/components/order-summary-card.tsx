@@ -14,12 +14,11 @@ import {
   X,
 } from "lucide-react"
 import Image from "next/image"
-import Link from "next/link"
+import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
 import { cn } from "@workspace/ui/lib/utils"
 
-import { formatPrice, toMyanmarDigits } from "@/components/catalog-data"
 import {
   buildOrderLine,
   buildOrderMessage,
@@ -28,8 +27,10 @@ import {
   MIN_ORDER_QTY,
   type OrderDraft,
 } from "@/components/order-data"
+import { Link } from "@/i18n/navigation"
 import { createOrder } from "@/lib/api"
 import { channelSupportsPrefill, chatHref, type ChatChannel } from "@/lib/chat"
+import { formatDigits, formatPrice } from "@/lib/format"
 import { useClipboard } from "@/lib/use-clipboard"
 
 type OrderSummaryCardProps = {
@@ -39,8 +40,10 @@ type OrderSummaryCardProps = {
   productSlug: string
   image: string
   alt: string
+  /** Product name in the active locale. */
   title: string
-  subtitle: string
+  /** Myanmar name, used in the message the shop receives. */
+  shopTitle: string
   price: number
   size?: string
   colorName?: string
@@ -59,7 +62,7 @@ export default function OrderSummaryCard({
   image,
   alt,
   title,
-  subtitle,
+  shopTitle,
   price,
   size,
   colorName,
@@ -82,6 +85,10 @@ export default function OrderSummaryCard({
   const [placeError, setPlaceError] = useState("")
   const { copiedKey, copy } = useClipboard()
 
+  const locale = useLocale()
+  const t = useTranslations("Order")
+  const common = useTranslations("Common")
+
   // Resolved after mount: the message needs an absolute product URL.
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -93,26 +100,23 @@ export default function OrderSummaryCard({
 
   const phoneFormatError =
     phone && (phoneDigits.length < 7 || phoneDigits.length > 15)
-      ? "ဖုန်းနံပါတ် မမှန်ပါ • Enter a valid phone number"
+      ? t("errors.phoneFormat")
       : ""
   // The API will not accept an order without a name and a phone number.
-  const nameError = showErrors && !name ? "အမည် ဖြည့်ပါ • Enter your name" : ""
+  const nameError = showErrors && !name ? t("errors.name") : ""
   const phoneError =
-    phoneFormatError ||
-    (showErrors && !phone
-      ? "ဖုန်းနံပါတ် ဖြည့်ပါ • Enter your phone number"
-      : "")
+    phoneFormatError || (showErrors && !phone ? t("errors.phone") : "")
 
   const draft: OrderDraft = {
     title,
-    subtitle,
+    shopTitle,
     unitPrice: price,
     qty,
     size,
     colorName,
   }
   const total = getOrderTotal(draft)
-  const orderLine = buildOrderLine(draft)
+  const orderLine = buildOrderLine(draft, locale, t("lineLabel"))
   const productHref = `/products/${productSlug}`
   const productUrl = origin ? `${origin}${productHref}` : productHref
 
@@ -155,9 +159,7 @@ export default function OrderSummaryCard({
 
       return order.code
     } catch {
-      setPlaceError(
-        "အမှာစာ မပို့နိုင်ပါ • Could not place the order. Please try again."
-      )
+      setPlaceError(t("errors.place"))
 
       return null
     } finally {
@@ -221,15 +223,15 @@ export default function OrderSummaryCard({
       <div className="flex items-start justify-between gap-2 px-5 pt-2 pb-3">
         <div>
           <h2 className="font-body text-lg leading-[1.7] font-bold text-foreground">
-            Order summary
+            {t("title")}
           </h2>
           <p className="-mt-0.5 font-body text-xs leading-[1.7] text-muted-foreground">
-            မှာယူမှု အကျဉ်း • Chat ရွေးပြီး ပို့လိုက်ပါ
+            {t("subtitle")}
           </p>
         </div>
         <Link
           href={productHref}
-          aria-label="Close order summary"
+          aria-label={t("close")}
           className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md bg-secondary"
         >
           <X className="size-[19px] text-foreground" strokeWidth={2.53} />
@@ -247,9 +249,6 @@ export default function OrderSummaryCard({
         <div className="min-w-0 flex-1">
           <div className="truncate font-body text-sm leading-[1.7] font-bold text-foreground">
             {title}
-          </div>
-          <div className="truncate text-xs text-muted-foreground">
-            {subtitle}
           </div>
           <div className="mt-1.5 flex items-center gap-1.5">
             {size ? (
@@ -269,7 +268,7 @@ export default function OrderSummaryCard({
           </div>
         </div>
         <div className="shrink-0 font-heading text-sm font-bold text-primary">
-          {formatPrice(price)}
+          {formatPrice(price, locale)}
         </div>
       </div>
 
@@ -279,7 +278,7 @@ export default function OrderSummaryCard({
             type="button"
             onClick={() => setQty((value) => clampQty(value - 1, maxQty))}
             disabled={qty <= MIN_ORDER_QTY || isLocked}
-            aria-label="Decrease quantity"
+            aria-label={common("decreaseQuantity")}
             className="flex h-[44px] w-[44px] items-center justify-center text-muted-foreground disabled:opacity-50"
           >
             <Minus className="size-[17px]" strokeWidth={2.82} />
@@ -288,13 +287,13 @@ export default function OrderSummaryCard({
             aria-live="polite"
             className="w-8 text-center text-base font-bold text-foreground"
           >
-            {qty}
+            {formatDigits(qty, locale)}
           </div>
           <button
             type="button"
             onClick={() => setQty((value) => clampQty(value + 1, maxQty))}
             disabled={qty >= maxQty || isLocked}
-            aria-label="Increase quantity"
+            aria-label={common("increaseQuantity")}
             className="flex h-[44px] w-[44px] items-center justify-center bg-primary text-primary-foreground disabled:opacity-50"
           >
             <Plus className="size-[17px]" strokeWidth={2.82} />
@@ -303,10 +302,10 @@ export default function OrderSummaryCard({
 
         <div className="text-right">
           <div className="font-body text-xs leading-none text-muted-foreground">
-            စုစုပေါင်း • Total
+            {t("total")}
           </div>
           <div className="mt-1 font-heading text-xl font-bold text-primary">
-            {formatPrice(total)}
+            {formatPrice(total, locale)}
           </div>
         </div>
       </div>
@@ -324,18 +323,17 @@ export default function OrderSummaryCard({
           ))}
         </div>
         <div className="pt-1 font-body text-xs text-muted-foreground">
-          {`အများဆုံး ${toMyanmarDigits(maxQty)} ထည် • Max ${maxQty} per order`}
+          {t("maxQty", { count: maxQty })}
         </div>
       </div>
 
       <div className="mx-5 mt-3 flex flex-col gap-2">
         <div className="text-sm font-semibold text-foreground">
-          သင့်အချက်အလက်{" "}
-          <span className="font-normal text-muted-foreground">• Required</span>
+          {t("required")}
         </div>
 
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">အမည် • Name</span>
+          <span className="text-xs text-muted-foreground">{t("name")}</span>
           <input
             type="text"
             value={customerName}
@@ -345,7 +343,7 @@ export default function OrderSummaryCard({
             disabled={isLocked}
             aria-invalid={Boolean(nameError)}
             aria-describedby={nameError ? "order-name-error" : undefined}
-            placeholder="Ma Thida"
+            placeholder={t("namePlaceholder")}
             className={cn(
               "min-h-[44px] w-full rounded-md border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-60",
               nameError ? "border-destructive" : "border-border"
@@ -360,7 +358,7 @@ export default function OrderSummaryCard({
         ) : null}
 
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">ဖုန်း • Phone</span>
+          <span className="text-xs text-muted-foreground">{t("phone")}</span>
           <input
             type="tel"
             inputMode="tel"
@@ -371,7 +369,7 @@ export default function OrderSummaryCard({
             disabled={isLocked}
             aria-invalid={Boolean(phoneError)}
             aria-describedby={phoneError ? "order-phone-error" : undefined}
-            placeholder="09 xxx xxx xxx"
+            placeholder={t("phonePlaceholder")}
             className={cn(
               "min-h-[44px] w-full rounded-md border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-60",
               phoneError ? "border-destructive" : "border-border"
@@ -393,10 +391,10 @@ export default function OrderSummaryCard({
         >
           <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
             <Check className="size-4 text-primary" strokeWidth={3.2} />
-            အမှာစာ အသင့်ဖြစ်ပါပြီ • Order ready
+            {t("ready")}
           </div>
           <p className="pt-1 font-body text-xs leading-[1.7] text-secondary-foreground">
-            {placedCode} • Chat ကို ဖွင့်ပြီး အမှာစာကို ပို့လိုက်ပါ။
+            {placedCode} • {t("readyHint")}
           </p>
         </div>
       ) : null}
@@ -430,7 +428,9 @@ export default function OrderSummaryCard({
           ) : (
             <Copy className="size-[13px]" strokeWidth={3.69} />
           )}
-          <span>{copiedKey === "line" ? "Copied" : "Copy"}</span>
+          <span>
+            {copiedKey === "line" ? common("copied") : common("copy")}
+          </span>
         </button>
       </div>
 
@@ -450,9 +450,7 @@ export default function OrderSummaryCard({
           )}
         >
           <MessageCircle className="size-[19px]" strokeWidth={2.53} />
-          <span className="font-body leading-[1.7]">
-            Messenger တွင် ဆက်မှာရန်
-          </span>
+          <span className="font-body leading-[1.7]">{t("messengerCta")}</span>
           <ArrowUpRight className="size-4" strokeWidth={3} />
         </a>
 
@@ -492,8 +490,7 @@ export default function OrderSummaryCard({
         </div>
 
         <p className="text-center font-body text-[11px] leading-[1.7] text-muted-foreground">
-          Messenger/Viber တွင် အမှာစာကို paste လုပ်ရန် copy လုပ်ပေးထားပါတယ်။
-          Telegram တွင် အလိုအလျောက် ထည့်ပေးထားပါတယ်။
+          {t("pasteHint")}
         </p>
 
         <button
@@ -513,9 +510,7 @@ export default function OrderSummaryCard({
             />
           )}
           <span>
-            {copiedKey === "details"
-              ? "Order details copied"
-              : "Copy order details"}
+            {copiedKey === "details" ? t("detailsCopied") : t("copyDetails")}
           </span>
         </button>
       </div>
@@ -527,9 +522,7 @@ export default function OrderSummaryCard({
             strokeWidth={3.43}
           />
           <p className="font-body text-xs leading-[1.7] text-muted-foreground">
-            ဆိုင်ဖွင့်ချိန် (10:00–20:00) အတွင်း ၁ နာရီအတွင်း ပြန်ဖြေပေးပါတယ်။
-            <br />
-            We reply within 1 hour during shop hours (10:00–20:00).
+            {t("shopHours")}
           </p>
         </div>
       </div>

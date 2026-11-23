@@ -71,4 +71,36 @@ describe.skipIf(!testDatabaseUrl)('API (e2e)', () => {
       })
       .expect(400);
   });
+
+  it('GET /api/auth/me rejects an anonymous request', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .expect(401);
+
+    expect(response.body).toMatchObject({ code: 'NOT_SIGNED_IN' });
+  });
+
+  it('POST /api/auth/login rejects bad credentials', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'nobody@yinphone.shop', password: 'wrong-password' })
+      .expect(401);
+
+    expect(response.body).toMatchObject({ code: 'INVALID_CREDENTIALS' });
+  });
+
+  it('POST /api/auth/login validates the payload', async () => {
+    await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'nobody@yinphone.shop', password: 'short' })
+      .expect(400);
+  });
+
+  it('POST /api/auth/logout clears the session cookie', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/auth/logout')
+      .expect(204);
+
+    expect(response.headers['set-cookie']).toContain('yp_session=');
+  });
 });

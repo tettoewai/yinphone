@@ -2,23 +2,26 @@
 
 import { Heart, MessageCircle } from "lucide-react"
 import Image from "next/image"
-import Link from "next/link"
+import { useLocale, useTranslations } from "next-intl"
 
 import { cn } from "@workspace/ui/lib/utils"
 
-import { formatPrice, type CatalogProduct } from "@/components/catalog-data"
+import { type CatalogProduct } from "@/components/catalog-data"
+import { Link } from "@/i18n/navigation"
 import { useFavourites } from "@/lib/favourites"
+import { formatPrice } from "@/lib/format"
 
 type CatalogCardProps = {
   product: CatalogProduct
 }
 
 export default function CatalogCard({ product }: CatalogCardProps) {
-  const { id, image, alt, title, subtitle, price, compareAtPrice, soldOut } =
-    product
+  const { id, image, alt, title, price, compareAtPrice, soldOut } = product
   const href = `/products/${id}`
   const { isFavourite, toggle } = useFavourites()
   const favourited = isFavourite(id)
+  const locale = useLocale()
+  const t = useTranslations("Common")
 
   return (
     <article className="flex flex-col overflow-hidden rounded-md border border-border bg-card">
@@ -38,7 +41,7 @@ export default function CatalogCard({ product }: CatalogCardProps) {
           onClick={() => toggle(id)}
           aria-pressed={favourited}
           aria-label={
-            favourited ? "Remove from favourites" : "Save to favourites"
+            favourited ? t("removeFromFavourites") : t("saveToFavourites")
           }
           className="absolute top-2 right-2 flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card/95"
         >
@@ -54,7 +57,7 @@ export default function CatalogCard({ product }: CatalogCardProps) {
         </button>
         {soldOut ? (
           <div className="absolute bottom-2 left-2 rounded-sm bg-foreground/85 px-2 py-1 font-body text-xs leading-[1.7] font-semibold text-white">
-            ကုန်နေပါပြီ • Out of stock
+            {t("soldOut")}
           </div>
         ) : null}
       </div>
@@ -71,30 +74,27 @@ export default function CatalogCard({ product }: CatalogCardProps) {
         >
           {title}
         </Link>
-        <div className="truncate text-xs text-muted-foreground">{subtitle}</div>
-        <div className="mt-0.5 flex items-baseline gap-1.5">
+        <div className="mt-0.5 mb-1.5 flex items-baseline gap-1.5">
           <span className="font-heading text-[15px] font-bold text-primary">
-            {formatPrice(price)}
+            {formatPrice(price, locale)}
           </span>
           {compareAtPrice ? (
             <span className="text-xs text-muted-foreground line-through">
-              {formatPrice(compareAtPrice)}
+              {formatPrice(compareAtPrice, locale)}
             </span>
           ) : null}
         </div>
         {soldOut ? (
-          <span className="mt-1.5 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-md bg-secondary text-sm font-semibold text-muted-foreground">
-            <span className="font-body leading-[1.7]">
-              ကုန်နေပါပြီ • Sold out
-            </span>
+          <span className="mt-auto flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-md bg-secondary text-sm font-semibold text-muted-foreground">
+            <span className="font-body leading-[1.7]">{t("soldOut")}</span>
           </span>
         ) : (
           <Link
             href={href}
-            className="mt-1.5 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-md bg-messenger text-sm font-semibold text-primary-foreground"
+            className="mt-auto flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-md bg-messenger text-sm font-semibold text-primary-foreground"
           >
             <MessageCircle className="size-[15px]" strokeWidth={3.2} />
-            <span className="font-body leading-[1.7]">မှာယူရန် • Order</span>
+            <span className="font-body leading-[1.7]">{t("order")}</span>
           </Link>
         )}
       </div>

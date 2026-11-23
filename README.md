@@ -1,13 +1,14 @@
 # YinPhone Boutique
 
-Turborepo monorepo with two Next.js apps, a NestJS API and shared packages.
+Turborepo monorepo with a Next.js storefront, a Vite + React admin dashboard, a
+NestJS API and shared packages.
 
 ## Structure
 
 ```
 apps/
-  web      Next.js storefront        http://localhost:3000
-  admin    Next.js admin dashboard   http://localhost:3001
+  web      Next.js storefront           http://localhost:3000
+  admin    Vite + React admin dashboard http://localhost:3001
   api      NestJS API (ESM)          http://localhost:4000
 packages/
   ui                 shadcn/ui components, hooks, lib and Tailwind theme (source-only)
@@ -15,8 +16,9 @@ packages/
   typescript-config  shared tsconfigs
 ```
 
-`packages/ui` is consumed as source: apps point `transpilePackages` at it and
-import from `@workspace/ui/*`. It has no build step.
+`packages/ui` is consumed as source: apps import from `@workspace/ui/*` and
+compile it themselves, so it needs no build step. `apps/web` lists it in
+`transpilePackages`; `apps/admin` resolves it through Vite.
 
 ## Requirements
 
@@ -56,6 +58,8 @@ Run from the app that will use them:
 pnpm dlx shadcn@latest add button -c apps/web
 ```
 
+Use `-c apps/admin` for components first needed by the dashboard.
+
 Components are written to `packages/ui/src/components` and imported via:
 
 ```tsx
@@ -77,12 +81,19 @@ import { Button } from "@workspace/ui/components/button"
 | `POST` | `/api/orders`         | Create an order; totals computed server-side |
 | `GET`  | `/api/orders/:code`   | Order summary by code                        |
 
-The web app does not consume the API yet (it still reads its local mock
-catalog), and `apps/admin` is still the starter page.
+The web app renders every catalog surface from this API: `/`, `/catalog`,
+`/products/[id]` and `/saved` are `force-dynamic` and fetch on each request, so
+the storefront needs the API and its database running. It reads
+`NEXT_PUBLIC_API_URL` and falls back to `http://localhost:4000` when unset (see
+`apps/web/.env.example`).
+
+`apps/admin` is a Vite + React SPA wired to `@workspace/ui` and the shared
+Tailwind theme, but it has no admin screens yet — the design mock lives in
+`apps/admin/design/admin-login.html`.
 
 ## Environment variables
 
 `.env*` files are gitignored; `.env.example` is committed. Variables that
 affect a build must be declared in `turbo.json` (`env` / `globalEnv`), otherwise
 Turbo may reuse a cache entry produced with different values. `NEXT_PUBLIC_*`
-is already declared for `build`.
+(web) and `VITE_*` (admin) are already declared for `build`.

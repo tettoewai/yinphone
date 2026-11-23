@@ -19,31 +19,83 @@ pnpm db:seed          # channels, categories, products, sample orders, owner use
 pnpm dev              # http://localhost:4000/api
 ```
 
+The seed signs in as `owner@yinphone.example` by default. To reproduce the
+demo account advertised by the admin login mock, add
+`SEED_STAFF_PASSWORD=lumi1234` before `pnpm db:seed`; it creates a `STAFF`
+user at `SEED_STAFF_EMAIL` (default `staff@yinphone.shop`).
+
 ## Environment
 
-| Variable              | Required  | Default                                       | Notes                                   |
-| --------------------- | --------- | --------------------------------------------- | --------------------------------------- |
-| `DATABASE_URL`        | yes       | –                                             | PostgreSQL connection string            |
-| `PORT`                | no        | `4000`                                        | HTTP port                               |
-| `CORS_ORIGINS`        | no        | `http://localhost:3000,http://localhost:3001` | Comma-separated allowed origins         |
-| `NODE_ENV`            | no        | `development`                                 | `development` \| `test` \| `production` |
-| `SEED_ADMIN_EMAIL`    | no        | `owner@yinphone.example`                      | Seed script only                        |
-| `SEED_ADMIN_PASSWORD` | seed only | –                                             | Required by `db:seed`                   |
+| Variable                | Required  | Default                                       | Notes                                    |
+| ----------------------- | --------- | --------------------------------------------- | ---------------------------------------- |
+| `DATABASE_URL`          | yes       | –                                             | PostgreSQL connection string             |
+| `PORT`                  | no        | `4000`                                        | HTTP port                                |
+| `CORS_ORIGINS`          | no        | `http://localhost:3000,http://localhost:3001` | Comma-separated allowed origins          |
+| `NODE_ENV`              | no        | `development`                                 | `development` \| `test` \| `production`  |
+| `SESSION_TTL_HOURS`     | no        | `12`                                          | Lifetime of a normal admin sign-in       |
+| `SESSION_REMEMBER_DAYS` | no        | `30`                                          | Lifetime with "remember this device"     |
+| `LOGIN_MAX_ATTEMPTS`    | no        | `5`                                           | Failed sign-ins before the account locks |
+| `LOGIN_LOCK_MINUTES`    | no        | `5`                                           | How long a locked account stays locked   |
+| `COOKIE_SECURE`         | no        | on in production                              | `true` / `false` override for the flag   |
+| `COOKIE_DOMAIN`         | no        | host-only                                     | e.g. `.yinphone.shop` for subdomains     |
+| `SEED_ADMIN_EMAIL`      | no        | `owner@yinphone.example`                      | Seed script only                         |
+| `SEED_ADMIN_PASSWORD`   | seed only | –                                             | Required by `db:seed`                    |
+| `SEED_STAFF_EMAIL`      | no        | `staff@yinphone.shop`                         | Seed script only, demo account           |
+| `SEED_STAFF_PASSWORD`   | no        | –                                             | Seed only; creates the demo `STAFF` user |
 
 Variables are validated at boot by `src/config/env.ts` (Zod). The process exits
-when a required value is missing or invalid.
+when a required value is missing or invalid. Optional keys may be left blank —
+`SESSION_TTL_HOURS=` falls back to the documented default — while
+`DATABASE_URL` must always be set.
 
 ## Endpoints
 
-| Method | Path                  | Description                                   |
-| ------ | --------------------- | --------------------------------------------- |
-| `GET`  | `/api/health`         | Liveness plus a `SELECT 1` database ping      |
-| `GET`  | `/api/categories`     | Active categories with `productCount`         |
-| `GET`  | `/api/products`       | Active products, filterable and paginated     |
-| `GET`  | `/api/products/:slug` | Single product (404 when missing or inactive) |
-| `GET`  | `/api/channels`       | Active order channels                         |
-| `POST` | `/api/orders`         | Create an order                               |
-| `GET`  | `/api/orders/:code`   | Order summary by human-readable code          |
+| Method | Path                        | Description                                   |
+| ------ | --------------------------- | --------------------------------------------- |
+| `GET`  | `/api/health`               | Liveness plus a `SELECT 1` database ping      |
+| `GET`  | `/api/categories`           | Active categories with `productCount`         |
+| `GET`  | `/api/products`             | Active products, filterable and paginated     |
+| `GET`  | `/api/products/:slug`       | Single product (404 when missing or inactive) |
+| `GET`  | `/api/channels`             | Active order channels                         |
+| `POST` | `/api/orders`               | Create an order                               |
+| `GET`  | `/api/orders/:code`         | Order summary by human-readable code          |
+| `POST` | `/api/auth/login`           | Admin sign-in; sets the session cookie        |
+| `GET`  | `/api/auth/me`              | Current admin (session required)              |
+| `POST` | `/api/auth/logout`          | Ends the session and clears the cookie        |
+| `POST` | `/api/auth/change-password` | Change own password, revokes other sessions   |
+
+## Admin authentication
+
+Sessions are server-side rows (`AdminSession`) referenced by an opaque
+256-bit token. Only the SHA-256 of the token is stored, and it travels in an
+`yp_session` cookie marked `httpOnly`, `sameSite=lax`, and `secure` in
+production. There is no JWT and no browser storage to leak; signing out or
+changing a password revokes rows immediately.
+
+```http
+POST /api/auth/login
+{ "email": "staff@yinphone.shop", "password": "lumi1234", "rememberDevice": false }
+
+200 { "user": { "id", "email", "name", "role", "mustChangePassword" }, "expiresAt" }
+401 { "code": "INVALID_CREDENTIALS", "message": "...", "attemptsLeft": 2 }
+429 { "code": "ACCOUNT_LOCKED", "message": "...", "retryAfterSeconds": 299, "lockedUntil" }
+```
+
+- `rememberDevice` extends the session from `SESSION_TTL_HOURS` to
+  `SESSION_REMEMBER_DAYS`.
+- Each wrong password increments `failedLoginAttempts`; reaching
+  `LOGIN_MAX_ATTEMPTS` sets `lockedUntil` for `LOGIN_LOCK_MINUTES`. Unknown
+  emails run a dummy argon2 verify so the timing and the message stay
+  identical, and a locked account is refused before the password is checked.
+- `change-password` requires the current password, stores a new argon2id hash,
+  clears `mustChangePassword`, deletes every session, and returns a fresh
+  cookie so the caller stays signed in on that device only.
+- `sameSite=lax` is the CSRF control: a cross-site POST never carries the
+  cookie. In development the admin app proxies `/api` to this API, so requests
+  are same-origin and no `credentials: "include"` is needed.
+- Admin routes not yet built (orders, products, dashboard) should use
+  `AdminAuthGuard`, plus `RolesGuard` with `@Roles('OWNER')` for anything
+  owner-only. Both are exported by `AuthModule`.
 
 ### `GET /api/products`
 
@@ -84,7 +136,8 @@ Responds with `{ items, total, limit, offset }`.
 ## Data model
 
 `Channel`, `Category`, `Product`, `ProductImage`, `Order`, `OrderItem`,
-`AdminUser` (`OWNER` / `STAFF`, argon2 password hashes). See
+`AdminUser` (`OWNER` / `STAFF`, argon2 password hashes) and `AdminSession`
+(hashed bearer tokens, `expiresAt`, `lastUsedAt`). See
 `prisma/schema.prisma`.
 
 Money is stored as whole kyat in `Int` columns (`priceMmk`, `totalMmk`,

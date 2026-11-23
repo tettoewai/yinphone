@@ -1,11 +1,14 @@
 "use client"
 
 import Image from "next/image"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl"
+
+import { Link, usePathname } from "@/i18n/navigation"
 
 export default function Footer() {
   const pathname = usePathname()
+  const t = useTranslations("Nav")
+  const home = useTranslations("Home")
 
   // Product and order screens are focused, modal-like flows.
   if (pathname?.startsWith("/products")) return null
@@ -25,25 +28,24 @@ export default function Footer() {
         <p className="font-heading text-2xl">YinPhone Boutique Yangon</p>
       </Link>
       <p className="mt-4 font-body text-muted-foreground">
-        နေ့စဉ်ဝတ် ချည်ထည်နှင့် ရာသီဖက်ရှင်များ — Chat ဖြင့် လွယ်ကူစွာ
-        မှာယူနိုင်ပါတယ်။
+        {home("footerTagline")}
       </p>
 
       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5 text-primary">
         <Link href="/catalog?sort=newest" className="min-h-[28px]">
-          New arrivals
+          {t("newArrivals")}
         </Link>
         <Link href="/catalog?category=longyi" className="min-h-[28px]">
-          Longyi
+          {home("longyi")}
         </Link>
         <Link href="/saved" className="min-h-[28px]">
-          Saved
+          {t("savedShort")}
         </Link>
         <Link href="/about" className="min-h-[28px]">
-          About
+          {t("about")}
         </Link>
         <Link href="/contact" className="min-h-[28px]">
-          Contact
+          {t("contact")}
         </Link>
       </div>
     </footer>

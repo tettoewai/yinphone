@@ -1,6 +1,7 @@
 "use client"
 
 import { X } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { useEffect, type ReactNode } from "react"
 
 import { cn } from "@workspace/ui/lib/utils"
@@ -26,6 +27,8 @@ export default function BottomSheet({
   footer,
   className,
 }: BottomSheetProps) {
+  const t = useTranslations("Common")
+
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
@@ -76,7 +79,7 @@ export default function BottomSheet({
           <button
             type="button"
             onClick={onClose}
-            aria-label={`Close ${title}`}
+            aria-label={t("closeDialog", { title })}
             className="flex h-[44px] w-[44px] shrink-0 items-center justify-center"
           >
             <X className="size-5 text-muted-foreground" strokeWidth={2.4} />
@@ -85,7 +88,9 @@ export default function BottomSheet({
 
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
 
-        {footer ? <div className="border-t border-border p-4">{footer}</div> : null}
+        {footer ? (
+          <div className="border-t border-border p-4">{footer}</div>
+        ) : null}
       </div>
     </div>
   )

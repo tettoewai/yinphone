@@ -1,0 +1,44 @@
+/*
+ * Myanmar + Latin webfonts, shared by both apps.
+ *
+ * The storefront loads these through `next/font/local`, which generates its own
+ * @font-face rules at build time. The admin app is a plain Vite SPA, so it
+ * declares them here. Either way the same two CSS variables end up on `:root`,
+ * which is what `globals.css` consumes through `@theme inline` to build the
+ * `font-body` and `font-heading` utilities.
+ *
+ * Import this *only* where `next/font` is not in play — importing it in a Next
+ * app would declare a second face for the same files.
+ */
+
+@font-face {
+  font-family: "YinPhone Body";
+  src: url("../fonts/font-body.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "YinPhone Heading";
+  src: url("../fonts/font-heading.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-font-body: "YinPhone Body";
+  --font-font-heading: "YinPhone Heading";
+
+  /*
+   * The storefront gets `--font-sans` from `next/font` (Geist). Without a
+   * value here, the `font-body` / `font-heading` stacks end in
+   * `var(--font-sans)`, which is invalid at computed-value time — and an
+   * invalid `font-family` drops the *whole* declaration, so the app silently
+   * falls back to the browser default instead of these files.
+   */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}

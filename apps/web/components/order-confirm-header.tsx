@@ -1,7 +1,10 @@
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
+"use client"
 
-import { formatPrice } from "@/components/catalog-data"
+import { ArrowLeft } from "lucide-react"
+import { useLocale, useTranslations } from "next-intl"
+
+import { Link } from "@/i18n/navigation"
+import { formatPrice } from "@/lib/format"
 
 type OrderConfirmHeaderProps = {
   productSlug: string
@@ -14,11 +17,14 @@ export default function OrderConfirmHeader({
   title,
   price,
 }: OrderConfirmHeaderProps) {
+  const locale = useLocale()
+  const t = useTranslations("Order")
+
   return (
     <header className="flex items-center gap-1 border-b border-border bg-background px-3 py-2">
       <Link
         href={`/products/${productSlug}`}
-        aria-label="Go back to product"
+        aria-label={t("backToProduct")}
         className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md"
       >
         <ArrowLeft className="size-[22px] text-foreground" strokeWidth={2.2} />
@@ -29,7 +35,7 @@ export default function OrderConfirmHeader({
           {title}
         </h1>
         <div className="-mt-1 text-xs text-muted-foreground">
-          {formatPrice(price)}
+          {formatPrice(price, locale)}
         </div>
       </div>
 

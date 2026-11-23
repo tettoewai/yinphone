@@ -438,6 +438,29 @@ async function main() {
     },
   });
 
+  // Optional: the demo account advertised by apps/admin/design/admin-login.html.
+  // Opt-in so no portfolio password can reach a real deployment.
+  const staffPassword = process.env.SEED_STAFF_PASSWORD;
+  if (staffPassword) {
+    console.log('Seeding demo staff user...');
+    await prisma.adminUser.upsert({
+      where: { email: process.env.SEED_STAFF_EMAIL ?? 'staff@yinphone.shop' },
+      update: {},
+      create: {
+        email: process.env.SEED_STAFF_EMAIL ?? 'staff@yinphone.shop',
+        name: 'YinPhone Staff',
+        role: 'STAFF',
+        passwordHash: await hash(staffPassword, {
+          type: argon2id,
+          memoryCost: 19456,
+          timeCost: 2,
+          parallelism: 1,
+        }),
+        mustChangePassword: false,
+      },
+    });
+  }
+
   console.log('Seeding sample orders...');
   for (const o of sampleOrders) {
     const channel = await prisma.channel.findUniqueOrThrow({

@@ -1,42 +1,30 @@
 import { Banknote, Repeat, Zap, type LucideIcon } from "lucide-react"
+import { getTranslations } from "next-intl/server"
 
 type TrustPoint = {
+  id: string
   icon: LucideIcon
-  myanmar: string
-  label: string
+  labelKey: "trust.fastReply" | "trust.cod" | "trust.exchange"
 }
 
 const points: TrustPoint[] = [
-  {
-    icon: Zap,
-    myanmar: "၁ နာရီအတွင်း ပြန်ဖြေပေးပါတယ်",
-    label: "Fast reply within 1 hour",
-  },
-  {
-    icon: Banknote,
-    myanmar: "ရန်ကုန်မြို့တွင်း အိမ်ရောက်ငွေချေ",
-    label: "Cash on delivery in Yangon",
-  },
-  {
-    icon: Repeat,
-    myanmar: "၇ ရက်အတွင်း လဲလှယ်နိုင်ပါတယ်",
-    label: "Exchange within 7 days",
-  },
+  { id: "fast-reply", icon: Zap, labelKey: "trust.fastReply" },
+  { id: "cod", icon: Banknote, labelKey: "trust.cod" },
+  { id: "exchange", icon: Repeat, labelKey: "trust.exchange" },
 ]
 
-export default function TrustStrip() {
+export default async function TrustStrip() {
+  const t = await getTranslations("Home")
+
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
-      {points.map(({ icon: Icon, myanmar, label }) => (
-        <div key={label} className="flex items-center gap-3">
+      {points.map(({ id, icon: Icon, labelKey }) => (
+        <div key={id} className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-secondary">
             <Icon className="size-[18px] text-primary" />
           </div>
-          <div className="leading-snug">
-            <div className="font-body text-sm leading-[1.7] font-medium text-foreground">
-              {myanmar}
-            </div>
-            <div className="text-xs text-muted-foreground">{label}</div>
+          <div className="font-body text-sm leading-[1.7] font-medium text-foreground">
+            {t(labelKey)}
           </div>
         </div>
       ))}

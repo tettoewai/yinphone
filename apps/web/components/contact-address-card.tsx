@@ -1,6 +1,7 @@
 "use client"
 
 import { Check, Copy, Navigation, Store } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { useEffect, useRef, useState } from "react"
 
 import { CONTACT } from "@/components/contact-data"
@@ -8,6 +9,7 @@ import { CONTACT } from "@/components/contact-data"
 export default function ContactAddressCard() {
   const [isCopied, setIsCopied] = useState(false)
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const t = useTranslations("Contact")
 
   useEffect(() => {
     return () => {
@@ -15,9 +17,11 @@ export default function ContactAddressCard() {
     }
   }, [])
 
+  const address = t("address")
+
   const copyAddress = async () => {
     try {
-      await navigator.clipboard.writeText(CONTACT.addressEn)
+      await navigator.clipboard.writeText(address)
       setIsCopied(true)
       if (timeout.current) clearTimeout(timeout.current)
       timeout.current = setTimeout(() => setIsCopied(false), 2000)
@@ -32,13 +36,8 @@ export default function ContactAddressCard() {
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-secondary">
           <Store className="size-[19px] text-primary" strokeWidth={2.53} />
         </span>
-        <div>
-          <div className="font-body text-sm leading-[1.7] font-bold text-foreground">
-            {CONTACT.addressMy}
-          </div>
-          <div className="mt-0.5 text-xs text-muted-foreground">
-            {CONTACT.addressEn}
-          </div>
+        <div className="font-body text-sm leading-[1.7] font-bold text-foreground">
+          {address}
         </div>
       </div>
 
@@ -50,13 +49,13 @@ export default function ContactAddressCard() {
           className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-md bg-primary text-sm font-bold text-primary-foreground"
         >
           <Navigation className="size-[15px]" strokeWidth={3.2} />
-          <span className="font-body">လမ်းညွှန်ကြည့်ရန်</span>
+          <span className="font-body">{t("directions")}</span>
         </a>
 
         <button
           type="button"
           onClick={copyAddress}
-          aria-label={isCopied ? "Address copied" : "Copy address"}
+          aria-label={isCopied ? t("addressCopied") : t("copyAddress")}
           className="flex min-h-[44px] items-center gap-1.5 rounded-md bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
         >
           {isCopied ? (
@@ -64,7 +63,7 @@ export default function ContactAddressCard() {
           ) : (
             <Copy className="size-[15px]" strokeWidth={3.2} />
           )}
-          <span>{isCopied ? "Copied" : "Copy"}</span>
+          <span>{isCopied ? t("addressCopied") : t("copyAddress")}</span>
         </button>
       </div>
     </div>

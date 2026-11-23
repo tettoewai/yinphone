@@ -1,0 +1,313 @@
+{
+  "Metadata": {
+    "siteName": "YinPhone Boutique Yangon",
+    "home": {
+      "title": "YinPhone — Cotton wear from Yangon",
+      "description": "Everyday cotton wear and seasonal fashion from Yangon. Order easily by chat on Messenger, Viber or Telegram."
+    },
+    "catalog": {
+      "title": "Catalog",
+      "description": "Blouses, longyis and dress sets from YinPhone — order by Messenger."
+    },
+    "about": {
+      "title": "About",
+      "description": "The YinPhone story — handpicked cotton clothing at fair prices in Yangon since 2019, delivered nationwide."
+    },
+    "contact": {
+      "title": "Contact",
+      "description": "Reach YinPhone Boutique Yangon on Messenger, Viber, Telegram or by phone. Opening hours and common questions."
+    },
+    "saved": {
+      "title": "Saved items",
+      "description": "The pieces you saved at YinPhone — come back any time to order them."
+    },
+    "product": {
+      "notFound": "Product not found"
+    },
+    "order": {
+      "title": "Order summary",
+      "description": "A summary for ordering {name} on Messenger, Viber or Telegram."
+    },
+    "notFound": {
+      "title": "Page not found"
+    }
+  },
+  "Locale": {
+    "label": "Language",
+    "my": "မြန်မာ",
+    "en": "English"
+  },
+  "Common": {
+    "home": "YinPhone home",
+    "goHome": "Go back to home",
+    "soldOut": "Sold out",
+    "outOfStock": "Out of stock",
+    "inStock": "In stock",
+    "order": "Order",
+    "copy": "Copy",
+    "copied": "Copied",
+    "seeAll": "See all",
+    "browseCollection": "Browse collection",
+    "chatOnly": "No payment • No login • Chat only",
+    "saveToFavourites": "Save to favourites",
+    "removeFromFavourites": "Remove from favourites",
+    "shareProduct": "Share product",
+    "linkCopied": "Link copied",
+    "showPhoto": "Show photo {index, number} of {total, number}",
+    "closeDialog": "Close {title}",
+    "decreaseQuantity": "Decrease quantity",
+    "increaseQuantity": "Increase quantity",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out"
+  },
+  "Nav": {
+    "home": "Home",
+    "catalog": "Catalog",
+    "newArrivals": "New arrivals",
+    "about": "About",
+    "contact": "Contact",
+    "saved": "Saved items",
+    "savedShort": "Saved",
+    "savedAria": "Saved items",
+    "savedAriaCount": "Saved items ({count, number})",
+    "menu": "Menu",
+    "menuDescription": "YinPhone Boutique Yangon",
+    "openMenu": "Open menu",
+    "chatWithUs": "Chat with us"
+  },
+  "Hero": {
+    "badge": "New season • Yangon",
+    "title": "Seasonal fashion",
+    "subtitle": "Seasonal fashion, delivered by chat",
+    "shopNow": "Shop now",
+    "imageAlt": "Young woman in a light beige cotton dress in a bright Yangon shop doorway"
+  },
+  "Home": {
+    "shopByCategory": "Shop by category",
+    "newArrivals": "New arrivals",
+    "viewAll": "View all",
+    "viewAllNew": "View all new arrivals",
+    "whyShop": "Why shop with YinPhone?",
+    "longyi": "Longyi",
+    "trust": {
+      "fastReply": "Fast reply within 1 hour",
+      "cod": "Cash on delivery in Yangon",
+      "exchange": "Exchange within 7 days"
+    },
+    "footerTagline": "Everyday cotton wear and seasonal fashion — order in a chat."
+  },
+  "Catalog": {
+    "allItems": "All items",
+    "all": "All",
+    "results": "{count, plural, one {# item} other {# items}}",
+    "found": "{count, plural, =0 {No items found} one {# item found} other {# items found}}",
+    "filter": "Filter",
+    "category": "Category",
+    "price": "Price",
+    "size": "Size",
+    "priceValue": "Price: {value}",
+    "sizeValue": "Size: {value}",
+    "sortLabel": "Sort products",
+    "sort": {
+      "newest": "Newest",
+      "priceAsc": "Price ↑",
+      "priceDesc": "Price ↓"
+    },
+    "searchPlaceholder": "Search products",
+    "searchLabel": "Search products",
+    "closeSearch": "Close search",
+    "searchResults": "Search results for “{query}”",
+    "loadMore": "Show more",
+    "shown": "{visible, number} of {total, number} shown",
+    "empty": {
+      "title": "No items in this category yet",
+      "hint": "Try a different price or size",
+      "clear": "Clear filters"
+    },
+    "filterSheet": {
+      "title": "Filter products",
+      "description": "YinPhone catalog",
+      "category": "Category",
+      "price": "Price (MMK)",
+      "size": "Size",
+      "clear": "Clear",
+      "apply": "Show {count, number} results"
+    },
+    "priceRanges": {
+      "between": "{min, number} – {max, number} Ks",
+      "above": "{min, number} Ks and above",
+      "under35kShort": "20k–35k",
+      "mid35k50kShort": "35k–50k",
+      "over50kShort": "50k+"
+    }
+  },
+  "Product": {
+    "stockLeft": "{count, number} left",
+    "sizeChoose": "Choose a size",
+    "modelWears": "Model wears {size}",
+    "color": "Colour",
+    "about": "About this piece",
+    "readMore": "Read more",
+    "readLess": "Read less",
+    "cod": "COD Yangon",
+    "exchange": "7-day exchange",
+    "orderHint": "Ordering is easy — pick a size and colour, then tap Order. Your order will be ready in the chat.",
+    "related": "You might also like",
+    "backToCatalog": "Back to catalog",
+    "sizeGuide": {
+      "title": "Size guide",
+      "unit": "Size guide • inches",
+      "size": "Size",
+      "bust": "Bust",
+      "waist": "Waist",
+      "hip": "Hip",
+      "length": "Length",
+      "note": "Handmade cotton can vary by 1–2 inches. Ask us if you are between sizes.",
+      "ask": "Ask on Messenger"
+    }
+  },
+  "Order": {
+    "title": "Order summary",
+    "subtitle": "Pick a chat app and send",
+    "total": "Total",
+    "maxQty": "Max {count, number} per order",
+    "required": "Your details",
+    "name": "Name",
+    "namePlaceholder": "Ma Thida",
+    "phone": "Phone",
+    "phonePlaceholder": "09 xxx xxx xxx",
+    "errors": {
+      "name": "Enter your name",
+      "phone": "Enter your phone number",
+      "phoneFormat": "Enter a valid phone number",
+      "place": "Could not place the order. Please try again."
+    },
+    "ready": "Order ready",
+    "readyHint": "Open the chat and send your order.",
+    "lineLabel": "Order",
+    "messengerCta": "Continue in Messenger",
+    "pasteHint": "Your order is copied for Messenger and Viber — just paste it. Telegram fills it in automatically.",
+    "copyDetails": "Copy order details",
+    "detailsCopied": "Order details copied",
+    "shopHours": "We reply within 1 hour during shop hours (10:00–20:00).",
+    "backToProduct": "Go back to product",
+    "close": "Close order summary"
+  },
+  "Saved": {
+    "title": "Saved items",
+    "count": "{count, number} saved",
+    "empty": {
+      "title": "No saved items yet",
+      "hint": "Tap the heart on a piece you like to keep it here."
+    },
+    "clearAll": "Clear all"
+  },
+  "About": {
+    "header": {
+      "title": "About us",
+      "subtitle": "About YinPhone"
+    },
+    "hero": {
+      "tags": "Since 2019 • Yangon • Chat-first shop",
+      "imageAlt": "YinPhone boutique shop front with cotton dresses on display in morning light"
+    },
+    "heading": "A shop that loves cotton",
+    "body1": "YinPhone started in 2019 from a tiny stall near Bogyoke Market. The idea was simple: light cotton pieces that suit Yangon weather, at fair prices.",
+    "body2": "Today we deliver to customers across the country through photo orders on Messenger, Viber and Telegram. Every piece is checked by hand in the shop and packed with care.",
+    "founder": "— Ma Yin, founder",
+    "values": {
+      "locallyMade": "Locally made",
+      "ships": "Ships across Myanmar",
+      "fairPrices": "Fair prices"
+    },
+    "stats": {
+      "buyers": {
+        "value": "{count, number}+",
+        "label": "Customers"
+      },
+      "designs": {
+        "value": "{count, number}+",
+        "label": "Designs"
+      },
+      "rating": {
+        "value": "{value, number}",
+        "label": "Rating"
+      }
+    },
+    "cta": "Browse the collection",
+    "ctaHint": "Head to the catalog for the newest arrivals",
+    "ariaValues": "Why shop with YinPhone",
+    "ariaStats": "Shop highlights"
+  },
+  "Contact": {
+    "header": {
+      "title": "Contact",
+      "subtitle": "Contact us"
+    },
+    "quick": {
+      "title": "Get in touch",
+      "hint": "Send a photo to order — we reply within 1 hour"
+    },
+    "channels": {
+      "call": "Call shop",
+      "callDetail": "Call us • {phone}",
+      "messenger": "Messenger",
+      "messengerDetail": "Fast reply • {handle}",
+      "viber": "Viber",
+      "viberDetail": "Chat and call • {phone}",
+      "telegram": "Telegram",
+      "telegramDetail": "Send photos • {handle}"
+    },
+    "address": "No.24, Bogyoke Market Rd, Pabedan Township, Yangon",
+    "directions": "Get directions",
+    "copyAddress": "Copy address",
+    "addressCopied": "Address copied",
+    "hours": {
+      "title": "Opening hours",
+      "open": "Open now",
+      "closed": "Closed",
+      "today": "Today"
+    },
+    "faq": {
+      "title": "Common questions",
+      "items": [
+        {
+          "question": "Which areas do you deliver to?",
+          "answer": "Cash on delivery inside Yangon; other townships go by Royal Express / Ninja Van within 2–4 days."
+        },
+        {
+          "question": "Can I exchange an item?",
+          "answer": "Yes, within 7 days if the size is wrong. The piece must be unworn with its tag still on."
+        },
+        {
+          "question": "Which payment methods?",
+          "answer": "KPay, WavePay and AYA Pay, plus cash on delivery inside Yangon."
+        }
+      ]
+    },
+    "askMessenger": "Ask on Messenger",
+    "map": {
+      "label": "Map",
+      "road": "BOGYOKE MARKET RD",
+      "cityHall": "City Hall",
+      "junctionCity": "Junction City"
+    },
+    "teaser": {
+      "hours": "Every day 10:00 – 20:00",
+      "orderCta": "Order on Messenger",
+      "hint": "Send a screenshot to place your order"
+    }
+  },
+  "Errors": {
+    "title": "Something went wrong",
+    "body": "Try reloading the page. If it keeps happening, message us on Messenger.",
+    "retry": "Try again"
+  },
+  "NotFound": {
+    "title": "This page is missing",
+    "body": "The link may be wrong. No worries — plenty of lovely pieces are waiting.",
+    "home": "Back to home",
+    "browse": "Browse collection",
+    "help": "Need help? Ask us on Messenger"
+  }
+}

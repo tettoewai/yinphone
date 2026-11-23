@@ -5,6 +5,7 @@ import {
   Send,
   type LucideIcon,
 } from "lucide-react"
+import { getTranslations } from "next-intl/server"
 
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -22,53 +23,55 @@ type Channel = {
   external: boolean
 }
 
-const CHANNELS: Channel[] = [
-  {
-    id: "phone",
-    icon: Phone,
-    label: "ဖုန်းခေါ်ရန်",
-    detail: `Call shop • ${CONTACT.phoneDisplay}`,
-    href: CONTACT.phoneHref,
-    className: "bg-primary text-primary-foreground",
-    tileClassName: "bg-primary-foreground/20",
-    external: false,
-  },
-  {
-    id: "messenger",
-    icon: MessageCircle,
-    label: "Messenger",
-    detail: `Fast reply • ${CONTACT.messengerHandle}`,
-    href: CONTACT.messengerUrl,
-    className: "bg-messenger text-primary-foreground",
-    tileClassName: "bg-primary-foreground/20",
-    external: true,
-  },
-  {
-    id: "viber",
-    icon: PhoneCall,
-    label: "Viber",
-    detail: `Chat & call • ${CONTACT.phoneDisplay}`,
-    href: CONTACT.viberHref,
-    className: "bg-viber text-white",
-    tileClassName: "bg-white/20",
-    external: false,
-  },
-  {
-    id: "telegram",
-    icon: Send,
-    label: "Telegram",
-    detail: `Send photos • ${CONTACT.telegramHandle}`,
-    href: CONTACT.telegramUrl,
-    className: "bg-telegram text-white",
-    tileClassName: "bg-white/20",
-    external: true,
-  },
-]
+export default async function ContactQuickActions() {
+  const t = await getTranslations("Contact.channels")
 
-export default function ContactQuickActions() {
+  const channels: Channel[] = [
+    {
+      id: "phone",
+      icon: Phone,
+      label: t("call"),
+      detail: t("callDetail", { phone: CONTACT.phoneDisplay }),
+      href: CONTACT.phoneHref,
+      className: "bg-primary text-primary-foreground",
+      tileClassName: "bg-primary-foreground/20",
+      external: false,
+    },
+    {
+      id: "messenger",
+      icon: MessageCircle,
+      label: t("messenger"),
+      detail: t("messengerDetail", { handle: CONTACT.messengerHandle }),
+      href: CONTACT.messengerUrl,
+      className: "bg-messenger text-primary-foreground",
+      tileClassName: "bg-primary-foreground/20",
+      external: true,
+    },
+    {
+      id: "viber",
+      icon: PhoneCall,
+      label: t("viber"),
+      detail: t("viberDetail", { phone: CONTACT.phoneDisplay }),
+      href: CONTACT.viberHref,
+      className: "bg-viber text-white",
+      tileClassName: "bg-white/20",
+      external: false,
+    },
+    {
+      id: "telegram",
+      icon: Send,
+      label: t("telegram"),
+      detail: t("telegramDetail", { handle: CONTACT.telegramHandle }),
+      href: CONTACT.telegramUrl,
+      className: "bg-telegram text-white",
+      tileClassName: "bg-white/20",
+      external: true,
+    },
+  ]
+
   return (
     <div className="grid grid-cols-2 gap-3">
-      {CHANNELS.map(
+      {channels.map(
         ({
           id,
           icon: Icon,

@@ -46,7 +46,7 @@ export function parseCatalogQuery(
     size: SIZES.find((entry) => entry === sizeValue) ?? null,
     q: firstValue(params.q).trim().slice(0, 60),
     sort:
-      SORT_OPTIONS.find((entry) => entry.id === sortValue)?.id ??
+      SORT_OPTIONS.find((entry) => entry === sortValue) ??
       DEFAULT_CATALOG_QUERY.sort,
   }
 }

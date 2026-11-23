@@ -1,11 +1,15 @@
-import { formatPrice } from "@/components/catalog-data"
+import type { Locale } from "next-intl"
+
+import { formatDigits, formatPrice } from "@/lib/format"
 
 export const MIN_ORDER_QTY = 1
 export const MAX_ORDER_QTY = 5
 
 export type OrderDraft = {
+  /** Product name in the active locale — for the on-screen summary line. */
   title: string
-  subtitle: string
+  /** Myanmar name. The shop-facing message is never translated. */
+  shopTitle: string
   unitPrice: number
   qty: number
   size?: string
@@ -24,23 +28,31 @@ export function getOrderTotal(draft: Pick<OrderDraft, "unitPrice" | "qty">) {
 }
 
 /**
- * Single truncated line shown inside the summary card, e.g.
- * `မှာယူချက်: Cotton Midi Dress x2 (M) - 90,000 Ks`.
+ * Single truncated line shown inside the summary card, in the customer's
+ * language, e.g. `မှာယူချက်: Cotton Midi Dress x၂ (M) - ၉၀,၀၀၀ Ks`.
  */
-export function buildOrderLine(draft: OrderDraft) {
+export function buildOrderLine(
+  draft: OrderDraft,
+  locale: Locale,
+  label: string
+) {
   const size = draft.size ? ` (${draft.size})` : ""
 
-  return `မှာယူချက်: ${draft.subtitle} x${draft.qty}${size} - ${formatPrice(
-    getOrderTotal(draft)
+  return `${label}: ${draft.title} x${formatDigits(draft.qty, locale)}${size} - ${formatPrice(
+    getOrderTotal(draft),
+    locale
   )}`
 }
 
-/** Multi-line message the customer sends to the shop in chat. */
+/**
+ * Multi-line message the customer sends to the shop in chat. Always Myanmar,
+ * with Myanmar digits, because the shop reads it — regardless of the locale the
+ * customer browsed in.
+ */
 export function buildOrderMessage(
   draft: OrderDraft,
   options: OrderMessageOptions = {}
 ) {
-  const variant = [draft.subtitle, draft.colorName].filter(Boolean).join(" • ")
   const selection = [
     draft.size ? `Size ${draft.size}` : null,
     `Qty ${draft.qty}`,
@@ -53,14 +65,14 @@ export function buildOrderMessage(
   ]
 
   return [
-    "မှာယူချက် • Order summary",
+    "မှာယူချက်",
     options.code ? `Order ${options.code}` : null,
     "",
-    draft.title,
-    variant,
+    draft.shopTitle,
+    draft.colorName ?? null,
     selection,
     ...customer,
-    `Total: ${formatPrice(getOrderTotal(draft))}`,
+    `Total: ${formatPrice(getOrderTotal(draft), "my")}`,
     options.productUrl ?? null,
     "",
     "— YinPhone Boutique Yangon",

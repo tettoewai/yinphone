@@ -1,7 +1,9 @@
 "use client"
 
 import { ArrowLeft, Search, X } from "lucide-react"
-import Link from "next/link"
+import { useTranslations } from "next-intl"
+
+import { Link } from "@/i18n/navigation"
 
 type CatalogSearch = {
   value: string
@@ -21,12 +23,15 @@ export default function CatalogHeader({
   subtitle,
   search,
 }: CatalogHeaderProps) {
+  const t = useTranslations("Catalog")
+  const common = useTranslations("Common")
+
   return (
     <header className="border-b border-border bg-background">
       <div className="flex items-center gap-1 px-3 py-2">
         <Link
           href="/"
-          aria-label="Go back to home"
+          aria-label={common("goHome")}
           className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md"
         >
           <ArrowLeft
@@ -46,7 +51,7 @@ export default function CatalogHeader({
           <button
             type="button"
             onClick={search.onToggle}
-            aria-label={search.isOpen ? "Close search" : "Search products"}
+            aria-label={search.isOpen ? t("closeSearch") : t("searchLabel")}
             aria-expanded={search.isOpen}
             className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md border border-border bg-card"
           >
@@ -67,7 +72,7 @@ export default function CatalogHeader({
       {search?.isOpen ? (
         <form role="search" className="px-4 pb-3">
           <label htmlFor="catalog-search" className="sr-only">
-            Search products
+            {t("searchLabel")}
           </label>
           <div className="relative">
             <Search
@@ -81,7 +86,7 @@ export default function CatalogHeader({
               autoFocus
               value={search.value}
               onChange={(event) => search.onChange(event.target.value)}
-              placeholder="အထည်အမည် ရှာရန် • Search"
+              placeholder={t("searchPlaceholder")}
               className="min-h-[44px] w-full rounded-md border border-border bg-card pr-3 pl-9 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
             />
           </div>

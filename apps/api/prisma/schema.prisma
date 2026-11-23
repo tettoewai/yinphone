@@ -56,22 +56,22 @@ model Category {
 }
 
 model Product {
-  id          String         @id @default(cuid())
-  slug        String         @unique
-  nameMy      String
-  nameEn      String
+  id            String         @id @default(cuid())
+  slug          String         @unique
+  nameMy        String
+  nameEn        String
   descriptionMy String?
   descriptionEn String?
-  priceMmk    Int            // store whole kyat, no decimals
-  stock       Int            @default(0)
-  sizes       ProductSize[]  @default([]) // empty = one size / not applicable
-  isActive    Boolean        @default(true)
-  categoryId  String
-  category    Category       @relation(fields: [categoryId], references: [id])
-  images      ProductImage[]
-  orderItems  OrderItem[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  priceMmk      Int // store whole kyat, no decimals
+  stock         Int            @default(0)
+  sizes         ProductSize[]  @default([]) // empty = one size / not applicable
+  isActive      Boolean        @default(true)
+  categoryId    String
+  category      Category       @relation(fields: [categoryId], references: [id])
+  images        ProductImage[]
+  orderItems    OrderItem[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([categoryId])
   @@index([isActive])
@@ -97,7 +97,7 @@ model Order {
   channelId     String
   channel       Channel     @relation(fields: [channelId], references: [id])
   status        OrderStatus @default(NEW)
-  totalMmk      Int         // calculated on the server, never from the client
+  totalMmk      Int // calculated on the server, never from the client
   note          String?
   items         OrderItem[]
   createdAt     DateTime    @default(now())
@@ -111,7 +111,7 @@ model Order {
 model OrderItem {
   id           String       @id @default(cuid())
   quantity     Int
-  unitPriceMmk Int          // snapshot of price at order time
+  unitPriceMmk Int // snapshot of price at order time
   size         ProductSize? // chosen size; null for one-size / size-less items
   productId    String
   product      Product      @relation(fields: [productId], references: [id])
@@ -123,13 +123,30 @@ model OrderItem {
 }
 
 model AdminUser {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  name         String
-  role         AdminRole @default(STAFF)
-  mustChangePassword Boolean @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                  String         @id @default(cuid())
+  email               String         @unique
+  passwordHash        String
+  name                String
+  role                AdminRole      @default(STAFF)
+  mustChangePassword  Boolean        @default(true)
+  lastLoginAt         DateTime?
+  failedLoginAttempts Int            @default(0)
+  lockedUntil         DateTime?
+  sessions            AdminSession[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+}
+
+model AdminSession {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique // SHA-256 of the cookie value; the raw token is never stored
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  lastUsedAt  DateTime  @default(now())
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([adminUserId])
+  @@index([expiresAt])
 }

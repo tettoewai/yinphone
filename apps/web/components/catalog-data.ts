@@ -1,3 +1,5 @@
+import type { Locale } from "next-intl"
+
 import type { ApiCategory, ApiProduct } from "@/lib/api"
 
 export const MESSENGER_URL = "https://m.me/yinphoneboutique"
@@ -21,8 +23,8 @@ export type CatalogFilters = {
 export type CatalogCategory = {
   id: string
   slug: string
-  nameMy: string
-  nameEn: string
+  /** Name in the active locale. */
+  name: string
   productCount: number
 }
 
@@ -33,8 +35,15 @@ export type CatalogProduct = {
   productId: string
   image: string
   alt: string
+  /** Name in the active locale. */
   title: string
+  /**
+   * Name in the other locale. Never rendered — it is kept so a search in
+   * either language still finds the piece.
+   */
   subtitle: string
+  /** Myanmar name, always. The shop-facing order payload is never translated. */
+  shopTitle: string
   price: number
   /** Category slug. */
   category: string
@@ -45,47 +54,21 @@ export type CatalogProduct = {
   soldOut?: boolean
 }
 
+/** Bounds only; the labels live in the message catalogues. */
 export const PRICE_RANGES: {
   id: PriceId
-  label: string
-  short: string
   min: number
   max: number | null
 }[] = [
-  {
-    id: "under-35k",
-    label: "20,000 – 35,000 Ks",
-    short: "20k–35k",
-    min: 20000,
-    max: 35000,
-  },
-  {
-    id: "35k-50k",
-    label: "35,000 – 50,000 Ks",
-    short: "35k–50k",
-    min: 35000,
-    max: 50000,
-  },
-  {
-    id: "over-50k",
-    label: "50,000 Ks အထက်",
-    short: "50k+",
-    min: 50000,
-    max: null,
-  },
+  { id: "under-35k", min: 20000, max: 35000 },
+  { id: "35k-50k", min: 35000, max: 50000 },
+  { id: "over-50k", min: 50000, max: null },
 ]
 
 export const DEFAULT_CATALOG_SORT: CatalogSort = "newest"
 
-export const SORT_OPTIONS: {
-  id: CatalogSort
-  label: string
-  short: string
-}[] = [
-  { id: "newest", label: "အသစ်ဆုံး", short: "Newest" },
-  { id: "price-asc", label: "ဈေးနည်းမှ မြင့်", short: "Price ↑" },
-  { id: "price-desc", label: "ဈေးမြင့်မှ နည်း", short: "Price ↓" },
-]
+/** Sort order as it appears in the picker; labels come from messages. */
+export const SORT_OPTIONS: CatalogSort[] = ["newest", "price-asc", "price-desc"]
 
 /** Shown when a product has no photo yet. */
 const FALLBACK_IMAGE = "/logo.svg"
@@ -105,17 +88,27 @@ function isSizeId(value: string): value is SizeId {
   return (SIZES as readonly string[]).includes(value)
 }
 
+/** Picks the field for the active locale, falling back to the other one. */
+function localized(my: string, en: string, locale: Locale) {
+  return locale === "my" ? my || en : en || my
+}
+
 /** Maps a product from the API onto the shape the storefront renders. */
-export function toCatalogProduct(product: ApiProduct): CatalogProduct {
+export function toCatalogProduct(
+  product: ApiProduct,
+  locale: Locale
+): CatalogProduct {
   const image = product.images[0]
+  const title = localized(product.nameMy, product.nameEn, locale)
 
   return {
     id: product.slug,
     productId: product.id,
     image: image?.url ?? FALLBACK_IMAGE,
-    alt: image?.altText ?? product.nameEn,
-    title: product.nameMy,
-    subtitle: product.nameEn,
+    alt: image?.altText ?? title,
+    title,
+    subtitle: localized(product.nameEn, product.nameMy, locale),
+    shopTitle: product.nameMy || product.nameEn,
     price: product.priceMmk,
     category: product.category.slug,
     sizes: product.sizes.filter(isSizeId),
@@ -124,12 +117,14 @@ export function toCatalogProduct(product: ApiProduct): CatalogProduct {
   }
 }
 
-export function toCatalogCategory(category: ApiCategory): CatalogCategory {
+export function toCatalogCategory(
+  category: ApiCategory,
+  locale: Locale
+): CatalogCategory {
   return {
     id: category.id,
     slug: category.slug,
-    nameMy: category.nameMy,
-    nameEn: category.nameEn,
+    name: localized(category.nameMy, category.nameEn, locale),
     productCount: category.productCount,
   }
 }
@@ -181,9 +176,10 @@ export function searchProducts(
   const needle = query.trim().toLowerCase()
   if (!needle) return products
 
+  // `subtitle` is the other locale's name, so a search in either language hits.
   return products.filter((product) =>
-    [product.title, product.subtitle, product.id].some((value) =>
-      value.toLowerCase().includes(needle)
+    [product.title, product.subtitle, product.id, product.shopTitle].some(
+      (value) => value.toLowerCase().includes(needle)
     )
   )
 }
@@ -201,17 +197,4 @@ export function sortProducts(
   }
 
   return products
-}
-
-export function formatPrice(price: number) {
-  return `${price.toLocaleString("en-US")} Ks`
-}
-
-const MYANMAR_DIGITS = ["၀", "၁", "၂", "၃", "၄", "၅", "၆", "၇", "၈", "၉"]
-
-export function toMyanmarDigits(value: number) {
-  return String(value).replace(
-    /\d/g,
-    (digit) => MYANMAR_DIGITS[Number(digit)] ?? digit
-  )
 }

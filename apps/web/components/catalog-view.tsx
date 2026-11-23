@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronDown, Plus, SlidersHorizontal } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   useCallback,
   useEffect,
@@ -23,15 +23,29 @@ import {
   filterProducts,
   searchProducts,
   sortProducts,
-  toMyanmarDigits,
   type CatalogCategory,
   type CatalogFilters,
   type CatalogProduct,
   type CatalogSort,
+  type PriceId,
 } from "@/components/catalog-data"
+import { useRouter } from "@/i18n/navigation"
 import { buildCatalogParams, type CatalogQuery } from "@/lib/catalog-query"
 
 const PAGE_SIZE = 6
+
+/** Short chip labels; the full range text lives in the filter sheet. */
+const PRICE_SHORT_KEYS = {
+  "under-35k": "priceRanges.under35kShort",
+  "35k-50k": "priceRanges.mid35k50kShort",
+  "over-50k": "priceRanges.over50kShort",
+} as const satisfies Record<PriceId, string>
+
+const SORT_LABEL_KEYS = {
+  newest: "sort.newest",
+  "price-asc": "sort.priceAsc",
+  "price-desc": "sort.priceDesc",
+} as const satisfies Record<CatalogSort, string>
 
 type CatalogViewProps = {
   products: CatalogProduct[]
@@ -45,6 +59,7 @@ export default function CatalogView({
   initial,
 }: CatalogViewProps) {
   const router = useRouter()
+  const t = useTranslations("Catalog")
   const [isPending, startTransition] = useTransition()
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -142,10 +157,8 @@ export default function CatalogView({
   return (
     <>
       <CatalogHeader
-        title={categoryLabel?.nameMy ?? "ပစ္စည်းအားလုံး"}
-        subtitle={`${categoryLabel?.nameEn ?? "All items"} • ${toMyanmarDigits(
-          results.length
-        )} မျိုး`}
+        title={categoryLabel?.name ?? t("allItems")}
+        subtitle={t("results", { count: results.length })}
         search={{
           value: searchText,
           isOpen: isSearchOpen,
@@ -156,17 +169,21 @@ export default function CatalogView({
 
       <div className="flex gap-2 overflow-x-auto px-4 py-3">
         <FilterChip
-          label={categoryLabel?.nameMy ?? "အမျိုးအစား"}
+          label={categoryLabel?.name ?? t("category")}
           active={Boolean(categoryLabel)}
           onClick={openFilters}
         />
         <FilterChip
-          label={priceLabel ? `ဈေး • ${priceLabel.short}` : "ဈေး"}
+          label={
+            priceLabel
+              ? t("priceValue", { value: t(PRICE_SHORT_KEYS[priceLabel.id]) })
+              : t("price")
+          }
           active={Boolean(priceLabel)}
           onClick={openFilters}
         />
         <FilterChip
-          label={size ? `ဆိုဒ် • ${size}` : "ဆိုဒ်"}
+          label={size ? t("sizeValue", { value: size }) : t("size")}
           active={Boolean(size)}
           onClick={openFilters}
         />
@@ -176,21 +193,18 @@ export default function CatalogView({
           className="flex min-h-[44px] shrink-0 items-center gap-1 rounded-md border border-border bg-card px-3 text-sm text-muted-foreground"
         >
           <SlidersHorizontal className="size-4" strokeWidth={3} />
-          <span className="font-body">စစ်ရန်</span>
+          <span className="font-body">{t("filter")}</span>
         </button>
       </div>
 
       <div className="flex items-center justify-between px-4 pb-2">
         <div className="text-sm text-muted-foreground">
-          <span className="font-semibold text-foreground">
-            {results.length}
-          </span>{" "}
-          မျိုး တွေ့ရှိပါတယ်
+          {t("found", { count: results.length })}
         </div>
 
         <div className="relative flex items-center text-sm text-muted-foreground">
           <label htmlFor="catalog-sort" className="sr-only">
-            Sort products
+            {t("sortLabel")}
           </label>
           <select
             id="catalog-sort"
@@ -201,8 +215,8 @@ export default function CatalogView({
             className="min-h-[44px] appearance-none rounded-md bg-transparent py-2 pr-6 pl-1 text-sm text-muted-foreground focus-visible:outline-none"
           >
             {SORT_OPTIONS.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
+              <option key={option} value={option}>
+                {t(SORT_LABEL_KEYS[option])}
               </option>
             ))}
           </select>
@@ -216,7 +230,7 @@ export default function CatalogView({
 
       {q ? (
         <div className="px-4 pb-2 text-xs text-muted-foreground">
-          “{q}” အတွက် ရှာဖွေမှု • Search results
+          {t("searchResults", { query: q })}
         </div>
       ) : null}
 
@@ -247,7 +261,7 @@ export default function CatalogView({
               className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-md border border-border bg-card text-sm font-semibold text-primary"
             >
               <Plus className="size-4" strokeWidth={3} />
-              နောက်ထပ် ပြမည်
+              {t("loadMore")}
             </button>
           ) : null}
           <div className="flex justify-center pt-2">
@@ -261,7 +275,7 @@ export default function CatalogView({
             </div>
           </div>
           <div className="pt-1 text-center text-xs text-muted-foreground">
-            {visible.length} of {results.length} shown
+            {t("shown", { visible: visible.length, total: results.length })}
           </div>
         </div>
       ) : null}

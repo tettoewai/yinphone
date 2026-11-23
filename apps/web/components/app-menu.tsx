@@ -12,52 +12,33 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react"
-import Link from "next/link"
+import { useLocale, useTranslations } from "next-intl"
 
 import BottomSheet from "@/components/bottom-sheet"
 import { CONTACT } from "@/components/contact-data"
-import { toMyanmarDigits } from "@/components/catalog-data"
+import LocaleSwitcher from "@/components/locale-switcher"
+import { Link } from "@/i18n/navigation"
 import { useFavourites } from "@/lib/favourites"
+import { formatDigits } from "@/lib/format"
 
 type MenuLink = {
   href: string
-  labelMy: string
-  labelEn: string
+  labelKey: "home" | "catalog" | "newArrivals" | "about" | "contact"
   icon: LucideIcon
 }
 
 const LINKS: MenuLink[] = [
-  { href: "/", labelMy: "ပင်မစာမျက်နှာ", labelEn: "Home", icon: Home },
-  {
-    href: "/catalog",
-    labelMy: "ပစ္စည်းအားလုံး",
-    labelEn: "Catalog",
-    icon: ShoppingBag,
-  },
-  {
-    href: "/catalog?sort=newest",
-    labelMy: "အသစ်ရောက်များ",
-    labelEn: "New arrivals",
-    icon: Sparkles,
-  },
-  {
-    href: "/about",
-    labelMy: "ကျွန်မတို့အကြောင်း",
-    labelEn: "About",
-    icon: Info,
-  },
-  {
-    href: "/contact",
-    labelMy: "ဆက်သွယ်ရန်",
-    labelEn: "Contact",
-    icon: MessageCircle,
-  },
+  { href: "/", labelKey: "home", icon: Home },
+  { href: "/catalog", labelKey: "catalog", icon: ShoppingBag },
+  { href: "/catalog?sort=newest", labelKey: "newArrivals", icon: Sparkles },
+  { href: "/about", labelKey: "about", icon: Info },
+  { href: "/contact", labelKey: "contact", icon: MessageCircle },
 ]
 
 const CHANNELS = [
   {
     id: "messenger",
-    label: "Messenger",
+    labelKey: "channels.messenger",
     detail: CONTACT.messengerHandle,
     href: CONTACT.messengerUrl,
     icon: MessageCircle,
@@ -65,7 +46,7 @@ const CHANNELS = [
   },
   {
     id: "viber",
-    label: "Viber",
+    labelKey: "channels.viber",
     detail: CONTACT.phoneDisplay,
     href: CONTACT.viberHref,
     icon: PhoneCall,
@@ -73,7 +54,7 @@ const CHANNELS = [
   },
   {
     id: "telegram",
-    label: "Telegram",
+    labelKey: "channels.telegram",
     detail: CONTACT.telegramHandle,
     href: CONTACT.telegramUrl,
     icon: Send,
@@ -81,13 +62,13 @@ const CHANNELS = [
   },
   {
     id: "call",
-    label: "ဖုန်းခေါ်ရန်",
+    labelKey: "channels.call",
     detail: CONTACT.phoneDisplay,
     href: CONTACT.phoneHref,
     icon: Phone,
     external: false,
   },
-]
+] as const
 
 type AppMenuProps = {
   onClose: () => void
@@ -95,15 +76,19 @@ type AppMenuProps = {
 
 export default function AppMenu({ onClose }: AppMenuProps) {
   const { count, isReady } = useFavourites()
+  const locale = useLocale()
+  const t = useTranslations("Nav")
+  const contact = useTranslations("Contact")
+  const common = useTranslations("Common")
 
   return (
     <BottomSheet
-      title="မီနူး"
-      description="Menu • YinPhone Boutique Yangon"
+      title={t("menu")}
+      description={t("menuDescription")}
       onClose={onClose}
     >
       <nav aria-label="Main" className="flex flex-col px-2 pb-2">
-        {LINKS.map(({ href, labelMy, labelEn, icon: Icon }) => (
+        {LINKS.map(({ href, labelKey, icon: Icon }) => (
           <Link
             key={href}
             href={href}
@@ -113,13 +98,8 @@ export default function AppMenu({ onClose }: AppMenuProps) {
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary">
               <Icon className="size-[17px] text-primary" strokeWidth={2.82} />
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-body text-sm leading-[1.7] font-semibold text-foreground">
-                {labelMy}
-              </span>
-              <span className="block text-xs text-muted-foreground">
-                {labelEn}
-              </span>
+            <span className="min-w-0 flex-1 font-body text-sm leading-[1.7] font-semibold text-foreground">
+              {t(labelKey)}
             </span>
           </Link>
         ))}
@@ -132,53 +112,54 @@ export default function AppMenu({ onClose }: AppMenuProps) {
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary">
             <Heart className="size-[17px] text-primary" strokeWidth={2.82} />
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-body text-sm leading-[1.7] font-semibold text-foreground">
-              သိမ်းထားသော ပစ္စည်းများ
-            </span>
-            <span className="block text-xs text-muted-foreground">
-              Saved items
-            </span>
+          <span className="min-w-0 flex-1 font-body text-sm leading-[1.7] font-semibold text-foreground">
+            {t("saved")}
           </span>
           {isReady && count > 0 ? (
             <span className="flex h-6 min-w-6 items-center justify-center rounded-xl bg-accent px-1.5 text-xs font-bold text-accent-foreground">
-              {toMyanmarDigits(count)}
+              {formatDigits(count, locale)}
             </span>
           ) : null}
         </Link>
       </nav>
 
+      <LocaleSwitcher />
+
       <div className="border-t border-border px-4 pt-3 pb-4">
         <div className="pb-2 text-xs font-semibold text-muted-foreground">
-          ဆက်သွယ်ရန် • Chat with us
+          {t("chatWithUs")}
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {CHANNELS.map(({ id, label, detail, href, icon: Icon, external }) => (
-            <a
-              key={id}
-              href={href}
-              {...(external
-                ? { target: "_blank", rel: "noopener noreferrer" }
-                : {})}
-              className="flex min-h-[52px] items-center gap-2 rounded-md border border-border bg-card px-3"
-            >
-              <Icon
-                className="size-4 shrink-0 text-primary"
-                strokeWidth={2.82}
-              />
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-foreground">
-                  {label}
-                </span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {detail}
-                </span>
-              </span>
-            </a>
-          ))}
+          {CHANNELS.map(
+            ({ id, labelKey, detail, href, icon: Icon, external }) => {
+              return (
+                <a
+                  key={id}
+                  href={href}
+                  {...(external
+                    ? { target: "_blank", rel: "noopener noreferrer" }
+                    : {})}
+                  className="flex min-h-[52px] items-center gap-2 rounded-md border border-border bg-card px-3"
+                >
+                  <Icon
+                    className="size-4 shrink-0 text-primary"
+                    strokeWidth={2.82}
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-foreground">
+                      {contact(labelKey)}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {detail}
+                    </span>
+                  </span>
+                </a>
+              )
+            }
+          )}
         </div>
         <p className="pt-3 text-center text-xs text-muted-foreground">
-          No payment • No login • Chat only
+          {common("chatOnly")}
         </p>
       </div>
     </BottomSheet>

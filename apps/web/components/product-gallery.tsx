@@ -2,11 +2,13 @@
 
 import { Heart } from "lucide-react"
 import Image from "next/image"
+import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
 
 import { cn } from "@workspace/ui/lib/utils"
 
 import { useFavourites } from "@/lib/favourites"
+import { formatDigits } from "@/lib/format"
 
 type ProductGalleryProps = {
   productId: string
@@ -24,6 +26,8 @@ export default function ProductGallery({
   const [activeIndex, setActiveIndex] = useState(0)
   const { isFavourite, toggle } = useFavourites()
   const favourited = isFavourite(productId)
+  const locale = useLocale()
+  const t = useTranslations("Common")
 
   const total = images.length
   const activeImage = images[activeIndex] ?? images[0]
@@ -52,7 +56,7 @@ export default function ProductGallery({
         <button
           type="button"
           aria-label={
-            favourited ? "Remove from favourites" : "Save to favourites"
+            favourited ? t("removeFromFavourites") : t("saveToFavourites")
           }
           aria-pressed={favourited}
           onClick={() => toggle(productId)}
@@ -83,7 +87,8 @@ export default function ProductGallery({
               ))}
             </div>
             <div className="absolute right-3 bottom-3 rounded-sm bg-foreground/70 px-2 py-1 text-xs font-medium text-white">
-              {activeIndex + 1} / {total}
+              {formatDigits(activeIndex + 1, locale)} /{" "}
+              {formatDigits(total, locale)}
             </div>
           </>
         ) : null}
@@ -95,7 +100,7 @@ export default function ProductGallery({
             <button
               key={`${image}-${index}`}
               type="button"
-              aria-label={`Show photo ${index + 1} of ${total}`}
+              aria-label={t("showPhoto", { index: index + 1, total })}
               aria-current={index === activeIndex}
               onClick={() => setActiveIndex(index)}
               className={cn(

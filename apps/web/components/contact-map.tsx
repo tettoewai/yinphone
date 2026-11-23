@@ -1,6 +1,7 @@
 "use client"
 
 import { MapPin, Minus, Plus } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 
 import { CONTACT } from "@/components/contact-data"
@@ -12,6 +13,8 @@ const ZOOM_STEP = 0.2
 
 export default function ContactMap() {
   const [zoom, setZoom] = useState(MIN_ZOOM)
+  const t = useTranslations("Contact.map")
+  const common = useTranslations("Common")
 
   const zoomBy = (delta: number) => {
     setZoom((value) =>
@@ -30,7 +33,7 @@ export default function ContactMap() {
         <div className="absolute top-0 right-0 left-0 h-[20px] bg-card/70" />
         <div className="absolute top-[58px] right-0 left-0 flex h-[26px] items-center border-y border-border bg-card px-4">
           <div className="text-[10px] font-medium tracking-wide text-muted-foreground">
-            BOGYOKE MARKET RD
+            {t("road")}
           </div>
         </div>
         <div className="absolute top-0 bottom-0 left-[110px] w-[20px] border-x border-border bg-card" />
@@ -39,10 +42,10 @@ export default function ContactMap() {
       </div>
 
       <div className="absolute top-[16px] left-[16px] rounded-sm border border-border bg-card px-2 py-1 text-[10px] text-muted-foreground">
-        City Hall
+        {t("cityHall")}
       </div>
       <div className="absolute right-[16px] bottom-[24px] rounded-sm border border-border bg-card px-2 py-1 text-[10px] text-muted-foreground">
-        Junction City
+        {t("junctionCity")}
       </div>
 
       <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -62,7 +65,7 @@ export default function ContactMap() {
           type="button"
           onClick={() => zoomBy(ZOOM_STEP)}
           disabled={zoom >= MAX_ZOOM}
-          aria-label="Zoom in"
+          aria-label={common("zoomIn")}
           className={cn(
             "flex h-[44px] w-[44px] items-center justify-center rounded-md border border-border bg-card",
             zoom >= MAX_ZOOM && "opacity-70"
@@ -74,7 +77,7 @@ export default function ContactMap() {
           type="button"
           onClick={() => zoomBy(-ZOOM_STEP)}
           disabled={zoom <= MIN_ZOOM}
-          aria-label="Zoom out"
+          aria-label={common("zoomOut")}
           className={cn(
             "flex h-[44px] w-[44px] items-center justify-center rounded-md border border-border bg-card",
             zoom <= MIN_ZOOM && "opacity-70"

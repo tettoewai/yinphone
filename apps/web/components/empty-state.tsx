@@ -1,10 +1,15 @@
+"use client"
+
 import { RotateCcw, ShoppingBasket } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 type EmptyStateProps = {
   onClear: () => void
 }
 
 export default function EmptyState({ onClear }: EmptyStateProps) {
+  const t = useTranslations("Catalog.empty")
+
   return (
     <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border bg-card px-6 py-8 text-center">
       <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-secondary">
@@ -14,13 +19,10 @@ export default function EmptyState({ onClear }: EmptyStateProps) {
         />
       </div>
       <div className="font-body text-base leading-[1.7] font-semibold text-foreground">
-        ဤအမျိုးအစားတွင် ပစ္စည်းမရှိသေးပါ
-      </div>
-      <div className="-mt-2 text-sm text-muted-foreground">
-        No items in this category yet
+        {t("title")}
       </div>
       <div className="font-body text-sm leading-[1.7] text-muted-foreground">
-        တခြားဈေးနှုန်း သို့မဟုတ် ဆိုဒ်ဖြင့် ရှာကြည့်ပါ
+        {t("hint")}
       </div>
       <button
         type="button"
@@ -28,7 +30,7 @@ export default function EmptyState({ onClear }: EmptyStateProps) {
         className="mt-1 flex min-h-[44px] items-center gap-1.5 rounded-md bg-primary px-6 text-sm font-semibold text-primary-foreground"
       >
         <RotateCcw className="size-[15px]" strokeWidth={3.2} />
-        <span className="font-body">Filters များ ရှင်းလင်းမည်</span>
+        <span className="font-body">{t("clear")}</span>
       </button>
     </div>
   )

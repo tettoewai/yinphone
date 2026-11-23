@@ -1,12 +1,15 @@
 import { Leaf } from "lucide-react"
 import Image from "next/image"
+import { getTranslations } from "next-intl/server"
 
-export default function AboutHero() {
+export default async function AboutHero() {
+  const t = await getTranslations("About.hero")
+
   return (
     <div className="relative">
       <Image
-        src="https://storage.googleapis.com/banani-generated-images/generated-images/11a83a0a-929f-4019-8eb9-39abb987e3f8.jpg"
-        alt="YinPhone boutique shop front with cotton dresses on display and the owner smiling in morning light"
+        src="https://i.pinimg.com/1200x/32/0a/af/320aaffbbfb570058cfd6b1f5d053c47.jpg"
+        alt={t("imageAlt")}
         width={900}
         height={675}
         sizes="(min-width: 448px) 448px, 100vw"
@@ -25,7 +28,7 @@ export default function AboutHero() {
             YinPhone Boutique Yangon
           </div>
           <div className="font-body text-xs text-muted-foreground">
-            2019 ကတည်းက • Yangon • Chat-first shop
+            {t("tags")}
           </div>
         </div>
       </div>

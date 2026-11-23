@@ -5,10 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 @source "../../../../apps/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
-/* The Banani design mocks under apps/web are reference-only. Scanning them
-   yields candidates like `aspect-[4:5]`, which compile to invalid CSS and break
-   the minified production build. */
-@source not "../../../../apps/web/**/*.html";
+/* The Banani design mocks (e.g. apps/admin/design) are reference-only. Scanning
+   them yields candidates like `aspect-[4:5]`, which compile to invalid CSS and
+   break the minified production build. */
+@source not "../../../../apps/**/*.html";
 
 @theme inline {
   /* The heading font (Jaguar) has no Myanmar glyphs, so Myanmar heading text

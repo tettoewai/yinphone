@@ -1,23 +1,20 @@
 "use client"
 
 import { Check, ChevronDown, Flame, Info, Repeat, Truck } from "lucide-react"
-import Link from "next/link"
+import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
 
 import { cn } from "@workspace/ui/lib/utils"
 
 import CatalogCard from "@/components/catalog-card"
-import {
-  formatPrice,
-  toMyanmarDigits,
-  type CatalogProduct,
-  type SizeId,
-} from "@/components/catalog-data"
+import { type CatalogProduct, type SizeId } from "@/components/catalog-data"
 import type { ProductDetail } from "@/components/product-detail-data"
 import OrderBar from "@/components/order-bar"
 import ProductDetailHeader from "@/components/product-detail-header"
 import ProductGallery from "@/components/product-gallery"
 import SizeGuideDialog from "@/components/size-guide-dialog"
+import { Link } from "@/i18n/navigation"
+import { formatPrice } from "@/lib/format"
 
 type ProductDetailViewProps = {
   detail: ProductDetail
@@ -35,13 +32,14 @@ export default function ProductDetailView({
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(false)
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false)
 
+  const locale = useLocale()
+  const t = useTranslations("Product")
+  const common = useTranslations("Common")
+
   const selectedColor = detail.colors.find(
     (color) => color.id === selectedColorId
   )
   const modelSize = selectedSize ?? detail.sizes[0]
-  const subtitle = selectedColor
-    ? `${detail.subtitle} • ${selectedColor.name}`
-    : detail.subtitle
 
   const orderParams = new URLSearchParams()
   if (selectedSize) orderParams.set("size", selectedSize)
@@ -53,10 +51,7 @@ export default function ProductDetailView({
 
   return (
     <>
-      <ProductDetailHeader
-        categoryEn={detail.categoryNameEn || "Shop"}
-        categoryMy={detail.categoryNameMy || "ပစ္စည်း"}
-      />
+      <ProductDetailHeader categoryName={detail.categoryName} />
 
       <ProductGallery
         productId={detail.id}
@@ -69,15 +64,19 @@ export default function ProductDetailView({
         <h1 className="font-body text-xl leading-[1.7] font-bold text-foreground">
           {detail.title}
         </h1>
-        <div className="-mt-1 text-sm text-muted-foreground">{subtitle}</div>
+        {selectedColor ? (
+          <div className="-mt-1 text-sm text-muted-foreground">
+            {selectedColor.name}
+          </div>
+        ) : null}
 
         <div className="mt-1 flex items-center gap-2">
           <div className="font-heading text-2xl font-bold text-primary">
-            {formatPrice(detail.price)}
+            {formatPrice(detail.price, locale)}
           </div>
           {detail.compareAtPrice ? (
             <div className="text-sm text-muted-foreground line-through">
-              {formatPrice(detail.compareAtPrice)}
+              {formatPrice(detail.compareAtPrice, locale)}
             </div>
           ) : null}
         </div>
@@ -98,9 +97,7 @@ export default function ProductDetailView({
               )}
             />
             <span className="font-body leading-[1.7]">
-              {detail.soldOut
-                ? "ကုန်နေပါပြီ • Out of stock"
-                : "ပစ္စည်းရှိပါတယ် • In stock"}
+              {detail.soldOut ? common("outOfStock") : common("inStock")}
             </span>
           </div>
 
@@ -108,7 +105,7 @@ export default function ProductDetailView({
             <div className="inline-flex items-center gap-1 text-sm font-semibold text-accent-foreground">
               <Flame className="size-3.5" strokeWidth={3.43} />
               <span className="font-body">
-                {toMyanmarDigits(detail.stockLeft)} ထည်သာ ကျန်
+                {t("stockLeft", { count: detail.stockLeft })}
               </span>
             </div>
           ) : null}
@@ -119,15 +116,14 @@ export default function ProductDetailView({
         <section className="flex flex-col gap-2.5 px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="text-sm font-bold text-foreground">
-              ဆိုဒ် ရွေးပါ{" "}
-              <span className="font-normal text-muted-foreground">• Size</span>
+              {t("sizeChoose")}
             </div>
             <button
               type="button"
               onClick={() => setIsSizeGuideOpen(true)}
               className="min-h-[44px] text-sm font-medium text-primary underline"
             >
-              Size guide
+              {t("sizeGuide.title")}
             </button>
           </div>
 
@@ -150,16 +146,18 @@ export default function ProductDetailView({
             ))}
           </div>
 
-          <div className="font-body text-xs leading-[1.7] text-muted-foreground">
-            {modelSize} ဆိုဒ် ဝတ်ထားသောပုံ • Model wears {modelSize}
-          </div>
+          {modelSize ? (
+            <div className="font-body text-xs leading-[1.7] text-muted-foreground">
+              {t("modelWears", { size: modelSize })}
+            </div>
+          ) : null}
         </section>
       ) : null}
 
       {detail.colors.length > 0 ? (
         <section className="flex flex-col gap-2.5 px-4 pb-4">
           <div className="text-sm font-bold text-foreground">
-            အရောင်{" "}
+            {t("color")}{" "}
             <span className="font-normal text-muted-foreground">
               • {selectedColor?.name}
             </span>
@@ -214,7 +212,7 @@ export default function ProductDetailView({
       ) : null}
 
       <div className="mx-4 flex flex-col gap-1.5 rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-bold text-foreground">ထုတ်ကုန် အကြောင်း</h2>
+        <h2 className="text-sm font-bold text-foreground">{t("about")}</h2>
         <p
           className={cn(
             "font-body text-sm leading-[1.8] text-foreground",
@@ -229,7 +227,7 @@ export default function ProductDetailView({
           aria-expanded={isDescriptionOpen}
           className="flex items-center gap-1 self-start text-sm font-semibold text-primary"
         >
-          {isDescriptionOpen ? "Read less" : "Read more"}
+          {isDescriptionOpen ? t("readLess") : t("readMore")}
           <ChevronDown
             className={cn(
               "size-[15px] transition-transform",
@@ -242,11 +240,11 @@ export default function ProductDetailView({
         <div className="flex flex-wrap gap-4 pt-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <Truck className="size-[13px]" strokeWidth={3.69} />
-            COD Yangon
+            {t("cod")}
           </span>
           <span className="flex items-center gap-1">
             <Repeat className="size-[13px]" strokeWidth={3.69} />
-            7-day exchange
+            {t("exchange")}
           </span>
         </div>
       </div>
@@ -258,8 +256,7 @@ export default function ProductDetailView({
             strokeWidth={3}
           />
           <p className="font-body text-xs leading-[1.7] text-secondary-foreground">
-            မှာယူရန် လွယ်ကူပါတယ် — ဆိုဒ်နဲ့ အရောင်ရွေးပြီး Order ကို နှိပ်ပါ။
-            Chat ထဲမှာ အမှာစာ အသင့်ဖြစ်နေပါလိမ့်မယ်။
+            {t("orderHint")}
           </p>
         </div>
       </div>
@@ -268,19 +265,19 @@ export default function ProductDetailView({
         <section className="flex flex-col gap-2.5 pt-5 pb-5">
           <div className="flex items-center justify-between px-4">
             <h2 className="font-heading text-base font-bold text-foreground">
-              သင်ကြိုက်နိုင်တာလေးများ
+              {t("related")}
             </h2>
             <Link
               href="/catalog"
               className="text-sm font-semibold text-primary"
             >
-              See all
+              {common("seeAll")}
             </Link>
           </div>
 
           <div className="flex gap-3 overflow-x-auto px-4">
             {related.map((product) => (
-              <div key={product.id} className="w-[160px] shrink-0">
+              <div key={product.id} className="flex w-[160px] shrink-0">
                 <CatalogCard product={product} />
               </div>
             ))}

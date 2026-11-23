@@ -1,16 +1,22 @@
+"use client"
+
 import { MessageCircle } from "lucide-react"
 import Image from "next/image"
-import Link from "next/link"
+import { useLocale, useTranslations } from "next-intl"
 
-import { formatPrice, type CatalogProduct } from "@/components/catalog-data"
+import { type CatalogProduct } from "@/components/catalog-data"
+import { Link } from "@/i18n/navigation"
+import { formatPrice } from "@/lib/format"
 
 type ProductCardProps = {
   product: CatalogProduct
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const { id, image, alt, title, subtitle, price, badge, soldOut } = product
+  const { id, image, alt, title, price, badge, soldOut } = product
   const href = `/products/${id}`
+  const locale = useLocale()
+  const t = useTranslations("Common")
 
   return (
     <article className="flex flex-col overflow-hidden rounded-md border border-border bg-card">
@@ -32,7 +38,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         ) : null}
         {soldOut ? (
           <div className="absolute bottom-2 left-2 rounded-sm bg-foreground/85 px-2 py-1 font-body text-xs leading-[1.7] font-semibold text-white">
-            ကုန်နေပါပြီ • Sold out
+            {t("soldOut")}
           </div>
         ) : null}
       </div>
@@ -44,15 +50,12 @@ export default function ProductCard({ product }: ProductCardProps) {
         >
           {title}
         </Link>
-        <div className="truncate text-xs text-muted-foreground">{subtitle}</div>
         <div className="font-heading text-base font-bold text-primary">
-          {formatPrice(price)}
+          {formatPrice(price, locale)}
         </div>
         {soldOut ? (
           <span className="mt-1 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-md bg-secondary px-2 text-sm font-semibold text-muted-foreground">
-            <span className="font-body leading-[1.7]">
-              ကုန်နေပါပြီ • Sold out
-            </span>
+            <span className="font-body leading-[1.7]">{t("soldOut")}</span>
           </span>
         ) : (
           <Link
@@ -60,7 +63,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             className="mt-1 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-md bg-messenger px-2 text-sm font-semibold text-primary-foreground"
           >
             <MessageCircle className="size-4" strokeWidth={3.2} />
-            <span className="font-body leading-[1.7]">မှာယူရန် • Order</span>
+            <span className="font-body leading-[1.7]">{t("order")}</span>
           </Link>
         )}
       </div>

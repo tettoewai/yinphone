@@ -12,7 +12,10 @@ async function bootstrap() {
   app.useGlobalPipes(new StandardSchemaValidationPipe());
   app.enableCors({
     origin: configService.getOrThrow<string[]>('CORS_ORIGINS'),
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    // The admin app signs in with an httpOnly cookie, so browsers must be
+    // allowed to send credentials on cross-origin requests.
+    credentials: true,
   });
   app.enableShutdownHooks();
 

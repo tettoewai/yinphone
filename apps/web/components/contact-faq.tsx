@@ -3,11 +3,15 @@
 import { Minus, Plus } from "lucide-react"
 import { useId, useState } from "react"
 
-import type { Faq } from "@/components/contact-data"
 import { cn } from "@workspace/ui/lib/utils"
 
+export type FaqItem = {
+  question: string
+  answer: string
+}
+
 type ContactFaqProps = {
-  items: Faq[]
+  items: FaqItem[]
 }
 
 export default function ContactFaq({ items }: ContactFaqProps) {
@@ -22,7 +26,7 @@ export default function ContactFaq({ items }: ContactFaqProps) {
 
         return (
           <div
-            key={item.questionEn}
+            key={item.question}
             className={cn(
               "overflow-hidden rounded-md border bg-card",
               isOpen ? "border-primary" : "border-border"
@@ -35,13 +39,8 @@ export default function ContactFaq({ items }: ContactFaqProps) {
               aria-controls={panelId}
               className="flex min-h-[52px] w-full items-center justify-between gap-2 px-4 py-2 text-left"
             >
-              <div>
-                <div className="font-body text-sm leading-[1.7] font-bold text-foreground">
-                  {item.question}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {item.questionEn}
-                </div>
+              <div className="font-body text-sm leading-[1.7] font-bold text-foreground">
+                {item.question}
               </div>
               <span
                 className={cn(
