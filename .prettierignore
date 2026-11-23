@@ -1,5 +1,6 @@
 dist/
 node_modules/
+apps/api/src/generated/
 .next/
 .turbo/
 coverage/

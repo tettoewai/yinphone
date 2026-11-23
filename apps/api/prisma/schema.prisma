@@ -22,6 +22,13 @@ enum AdminRole {
   STAFF
 }
 
+enum ProductSize {
+  S
+  M
+  L
+  XL
+}
+
 model Channel {
   id        String   @id @default(cuid())
   slug      String   @unique
@@ -57,6 +64,7 @@ model Product {
   descriptionEn String?
   priceMmk    Int            // store whole kyat, no decimals
   stock       Int            @default(0)
+  sizes       ProductSize[]  @default([]) // empty = one size / not applicable
   isActive    Boolean        @default(true)
   categoryId  String
   category    Category       @relation(fields: [categoryId], references: [id])
@@ -101,13 +109,14 @@ model Order {
 }
 
 model OrderItem {
-  id           String  @id @default(cuid())
+  id           String       @id @default(cuid())
   quantity     Int
-  unitPriceMmk Int     // snapshot of price at order time
+  unitPriceMmk Int          // snapshot of price at order time
+  size         ProductSize? // chosen size; null for one-size / size-less items
   productId    String
-  product      Product @relation(fields: [productId], references: [id])
+  product      Product      @relation(fields: [productId], references: [id])
   orderId      String
-  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@index([productId])

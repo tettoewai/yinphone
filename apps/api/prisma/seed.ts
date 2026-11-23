@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { hash, argon2id } from 'argon2';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/generated/prisma/client.js';
+import type { ProductSize } from '@/generated/prisma/enums.js';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -55,6 +56,8 @@ type SeedProduct = {
   descriptionEn: string;
   priceMmk: number;
   stock: number;
+  /** Empty means one size fits all (e.g. longyi), not out of stock. */
+  sizes: ProductSize[];
 };
 
 const products: SeedProduct[] = [
@@ -69,6 +72,7 @@ const products: SeedProduct[] = [
       'Simple everyday cotton yin phone, comfortable for all-day wear.',
     priceMmk: 18000,
     stock: 12,
+    sizes: ['S', 'M', 'L'],
   },
   {
     slug: 'embroidered-yin-phone-white',
@@ -80,6 +84,7 @@ const products: SeedProduct[] = [
       'White base with hand-finished floral embroidery on the front panel.',
     priceMmk: 26000,
     stock: 6,
+    sizes: ['S', 'M'],
   },
   {
     slug: 'everyday-linen-blouse',
@@ -91,6 +96,7 @@ const products: SeedProduct[] = [
     descriptionEn: 'Breathable linen for hot weather, with a relaxed fit.',
     priceMmk: 22000,
     stock: 9,
+    sizes: ['S', 'M', 'L'],
   },
   {
     slug: 'mandalay-style-yin-phone-navy',
@@ -101,6 +107,7 @@ const products: SeedProduct[] = [
     descriptionEn: 'Traditional Mandalay cut in deep navy.',
     priceMmk: 24000,
     stock: 8,
+    sizes: ['M', 'L', 'XL'],
   },
   {
     slug: 'mandarin-collar-blouse',
@@ -113,9 +120,12 @@ const products: SeedProduct[] = [
       'Traditional silhouette with a modern mandarin collar. Works for office and events.',
     priceMmk: 28000,
     stock: 5,
+    sizes: ['S', 'M', 'L'],
   },
 
   // Longyi
+  // Longyi are sold free-size, so they carry no size options. Swap in real
+  // sizes if the shop stocks waist-sized longyi.
   {
     slug: 'checked-cotton-longyi',
     category: 'longyi',
@@ -126,6 +136,7 @@ const products: SeedProduct[] = [
       'Classic checked cotton longyi with a comfortable waistband.',
     priceMmk: 32000,
     stock: 10,
+    sizes: [],
   },
   {
     slug: 'silk-blend-longyi-gold',
@@ -137,6 +148,7 @@ const products: SeedProduct[] = [
       'Silk-blend longyi with gold trim, suited for ceremonies and celebrations.',
     priceMmk: 65000,
     stock: 4,
+    sizes: [],
   },
   {
     slug: 'everyday-plain-cotton-longyi',
@@ -148,6 +160,7 @@ const products: SeedProduct[] = [
       'Solid-color everyday cotton longyi that pairs with any blouse.',
     priceMmk: 19000,
     stock: 15,
+    sizes: [],
   },
   {
     slug: 'ikat-style-longyi',
@@ -159,6 +172,7 @@ const products: SeedProduct[] = [
       'Colorful ikat-inspired pattern for a standout everyday look.',
     priceMmk: 38000,
     stock: 6,
+    sizes: [],
   },
   {
     slug: 'pastel-striped-longyi',
@@ -170,6 +184,7 @@ const products: SeedProduct[] = [
       'Light pastel stripes, ideal for warm days and casual outings.',
     priceMmk: 27000,
     stock: 7,
+    sizes: [],
   },
 
   // Dresses & sets
@@ -182,6 +197,7 @@ const products: SeedProduct[] = [
     descriptionEn: 'Matching yin phone and longyi set, ready to wear.',
     priceMmk: 45000,
     stock: 5,
+    sizes: ['S', 'M', 'L'],
   },
   {
     slug: 'floral-midi-dress',
@@ -192,6 +208,7 @@ const products: SeedProduct[] = [
     descriptionEn: 'Fitted waist with a flowing floral midi skirt.',
     priceMmk: 35000,
     stock: 6,
+    sizes: ['S', 'M', 'L'],
   },
   {
     slug: 'linen-wrap-dress',
@@ -203,6 +220,7 @@ const products: SeedProduct[] = [
       'Adjustable wrap-style linen dress for everyday and casual events.',
     priceMmk: 39000,
     stock: 4,
+    sizes: ['S', 'M', 'L', 'XL'],
   },
   {
     slug: 'two-piece-cotton-set',
@@ -213,6 +231,7 @@ const products: SeedProduct[] = [
     descriptionEn: 'Cropped top and skirt set in soft cotton.',
     priceMmk: 42000,
     stock: 5,
+    sizes: ['S', 'M'],
   },
   {
     slug: 'festive-celebration-gown',
@@ -223,6 +242,7 @@ const products: SeedProduct[] = [
     descriptionEn: 'Statement gown for festivals and formal celebrations.',
     priceMmk: 85000,
     stock: 2,
+    sizes: ['M', 'L', 'XL'],
   },
 ];
 

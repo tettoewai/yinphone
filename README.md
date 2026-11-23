@@ -36,6 +36,9 @@ pnpm typecheck
 pnpm test       # vitest in apps/api
 pnpm format     # prettier --write (not cached)
 pnpm clean      # remove build output
+pnpm db:generate  # regenerate the Prisma client
+pnpm db:migrate   # apply migrations
+pnpm db:seed      # seed channels, products, sample orders
 ```
 
 Scope to a single app with a filter:
@@ -58,6 +61,24 @@ Components are written to `packages/ui/src/components` and imported via:
 ```tsx
 import { Button } from "@workspace/ui/components/button"
 ```
+
+## API
+
+`apps/api` serves the storefront under `/api`. See
+[`apps/api/README.md`](apps/api/README.md) for setup, environment and payloads.
+
+| Method | Endpoint              | Description                                  |
+| ------ | --------------------- | -------------------------------------------- |
+| `GET`  | `/api/health`         | Liveness plus a database ping                |
+| `GET`  | `/api/categories`     | Categories with active product counts        |
+| `GET`  | `/api/products`       | Category, price, search, sorting and paging  |
+| `GET`  | `/api/products/:slug` | Single product                               |
+| `GET`  | `/api/channels`       | Active order channels                        |
+| `POST` | `/api/orders`         | Create an order; totals computed server-side |
+| `GET`  | `/api/orders/:code`   | Order summary by code                        |
+
+The web app does not consume the API yet (it still reads its local mock
+catalog), and `apps/admin` is still the starter page.
 
 ## Environment variables
 
