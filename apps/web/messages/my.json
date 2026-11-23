@@ -134,8 +134,8 @@
       "apply": "ရလဒ် {count, number} ခု ပြမည်"
     },
     "priceRanges": {
-      "between": "{min, number} – {max, number} Ks",
-      "above": "{min, number} Ks အထက်",
+      "between": "{min, number} – {max, number} ကျပ်",
+      "above": "{min, number} ကျပ် အထက်",
       "under35kShort": "၂၀k–၃၅k",
       "mid35k50kShort": "၃၅k–၅၀k",
       "over50kShort": "၅၀k+"

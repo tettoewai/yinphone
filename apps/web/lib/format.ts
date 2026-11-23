@@ -19,7 +19,6 @@ export function formatDigits(value: number, locale: Locale, grouping = false) {
   return localizeDigits(text, locale)
 }
 
-/** Prices keep the `Ks` suffix in both locales. */
 export function formatPrice(value: number, locale: Locale) {
-  return `${formatDigits(value, locale, true)} Ks`
+  return `${formatDigits(value, locale, true)} ${locale === "my" ? "ကျပ်" : locale === "en" ? "Ks" : ""}`
 }
