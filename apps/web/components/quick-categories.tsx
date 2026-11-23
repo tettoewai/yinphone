@@ -1,83 +1,60 @@
-import {
-  Shirt,
-  ShoppingBag,
-  Sparkles,
-  Store,
-  Tag,
-  type LucideIcon,
-} from "lucide-react"
+import { Layers, Shirt, Sparkles, Store, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 
-type Category = {
-  href: string
-  icon: LucideIcon
-  myanmar: string
-  label: string
-  highlight?: boolean
+import type { CatalogCategory } from "@/components/catalog-data"
+
+/** Icon per category slug; unknown slugs fall back to a generic shop icon. */
+const ICONS: Record<string, LucideIcon> = {
+  blouses: Shirt,
+  longyi: Layers,
+  "dresses-sets": Sparkles,
 }
 
-const categories: Category[] = [
-  {
-    href: "/catalog",
-    icon: Store,
-    myanmar: "အားလုံး",
-    label: "All",
-  },
-  {
-    href: "/catalog?category=dresses",
-    icon: Shirt,
-    myanmar: "ဂါဝန်",
-    label: "Dresses",
-  },
-  {
-    href: "/catalog?category=tops",
-    icon: Sparkles,
-    myanmar: "အင်္ကျီ",
-    label: "Tops",
-  },
-  {
-    href: "/catalog?category=bags",
-    icon: ShoppingBag,
-    myanmar: "အိတ်",
-    label: "Bags",
-  },
-  {
-    href: "/catalog?category=sale",
-    icon: Tag,
-    myanmar: "လျှော့ဈေး",
-    label: "Sale",
-    highlight: true,
-  },
-]
+type QuickCategoriesProps = {
+  categories: CatalogCategory[]
+}
 
-export default function QuickCategories() {
+export default function QuickCategories({ categories }: QuickCategoriesProps) {
   return (
     <div className="flex gap-3 overflow-x-auto px-4 py-1">
-      {categories.map(({ href, icon: Icon, myanmar, label, highlight }) => (
-        <Link
-          key={label}
-          href={href}
-          className="flex w-[64px] shrink-0 flex-col items-center gap-1.5"
-        >
-          <div
-            className={`flex h-[64px] w-[64px] items-center justify-center rounded-xl border ${
-              highlight ? "border-accent bg-accent" : "border-border bg-card"
-            }`}
+      <Link
+        href="/catalog"
+        className="flex w-[64px] shrink-0 flex-col items-center gap-1.5"
+      >
+        <div className="flex h-[64px] w-[64px] items-center justify-center rounded-xl border border-border bg-card">
+          <Store className="size-[22px] text-primary" />
+        </div>
+        <div className="text-center leading-tight">
+          <div className="font-body text-xs font-semibold text-foreground">
+            အားလုံး
+          </div>
+          <div className="text-xs text-muted-foreground">All</div>
+        </div>
+      </Link>
+
+      {categories.map((category) => {
+        const Icon = ICONS[category.slug] ?? Store
+
+        return (
+          <Link
+            key={category.slug}
+            href={`/catalog?category=${category.slug}`}
+            className="flex w-[64px] shrink-0 flex-col items-center gap-1.5"
           >
-            <Icon
-              className={`size-[22px] ${
-                highlight ? "text-accent-foreground" : "text-primary"
-              }`}
-            />
-          </div>
-          <div className="text-center leading-tight">
-            <div className="font-body text-xs font-semibold text-foreground">
-              {myanmar}
+            <div className="flex h-[64px] w-[64px] items-center justify-center rounded-xl border border-border bg-card">
+              <Icon className="size-[22px] text-primary" />
             </div>
-            <div className="text-xs text-muted-foreground">{label}</div>
-          </div>
-        </Link>
-      ))}
+            <div className="text-center leading-tight">
+              <div className="font-body text-xs font-semibold text-foreground">
+                {category.nameMy}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {category.nameEn}
+              </div>
+            </div>
+          </Link>
+        )
+      })}
     </div>
   )
 }

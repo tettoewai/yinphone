@@ -8,7 +8,6 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import CatalogCard from "@/components/catalog-card"
 import {
-  CATEGORIES,
   formatPrice,
   toMyanmarDigits,
   type CatalogProduct,
@@ -29,8 +28,6 @@ export default function ProductDetailView({
   detail,
   related,
 }: ProductDetailViewProps) {
-  const category = CATEGORIES.find((entry) => entry.id === detail.category)
-
   const [selectedSize, setSelectedSize] = useState<SizeId | null>(
     detail.defaultSize ?? null
   )
@@ -57,8 +54,8 @@ export default function ProductDetailView({
   return (
     <>
       <ProductDetailHeader
-        categoryEn={category?.en ?? "Shop"}
-        categoryMy={category?.chip ?? "ပစ္စည်း"}
+        categoryEn={detail.categoryNameEn || "Shop"}
+        categoryMy={detail.categoryNameMy || "ပစ္စည်း"}
       />
 
       <ProductGallery
@@ -159,60 +156,62 @@ export default function ProductDetailView({
         </section>
       ) : null}
 
-      <section className="flex flex-col gap-2.5 px-4 pb-4">
-        <div className="text-sm font-bold text-foreground">
-          အရောင်{" "}
-          <span className="font-normal text-muted-foreground">
-            • {selectedColor?.name}
-          </span>
-        </div>
+      {detail.colors.length > 0 ? (
+        <section className="flex flex-col gap-2.5 px-4 pb-4">
+          <div className="text-sm font-bold text-foreground">
+            အရောင်{" "}
+            <span className="font-normal text-muted-foreground">
+              • {selectedColor?.name}
+            </span>
+          </div>
 
-        <div className="flex flex-wrap gap-3">
-          {detail.colors.map((color) => {
-            const isSelected = color.id === selectedColorId
+          <div className="flex flex-wrap gap-3">
+            {detail.colors.map((color) => {
+              const isSelected = color.id === selectedColorId
 
-            return (
-              <button
-                key={color.id}
-                type="button"
-                onClick={() => setSelectedColorId(color.id)}
-                aria-pressed={isSelected}
-                className="flex w-[56px] flex-col items-center gap-1"
-              >
-                <span
-                  className={cn(
-                    "flex h-[44px] w-[44px] items-center justify-center rounded-xl border-2",
-                    isSelected ? "border-primary" : "border-border"
-                  )}
-                  style={{ backgroundColor: color.hex }}
+              return (
+                <button
+                  key={color.id}
+                  type="button"
+                  onClick={() => setSelectedColorId(color.id)}
+                  aria-pressed={isSelected}
+                  className="flex w-[56px] flex-col items-center gap-1"
                 >
-                  {isSelected ? (
-                    <Check
-                      className={cn(
-                        "size-[18px]",
-                        isLightSwatch(color.hex)
-                          ? "text-foreground"
-                          : "text-primary-foreground"
-                      )}
-                      strokeWidth={2.67}
-                    />
-                  ) : null}
-                </span>
-                <span
-                  className={cn(
-                    "text-xs",
-                    isSelected
-                      ? "font-bold text-foreground"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  {color.name}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </section>
+                  <span
+                    className={cn(
+                      "flex h-[44px] w-[44px] items-center justify-center rounded-xl border-2",
+                      isSelected ? "border-primary" : "border-border"
+                    )}
+                    style={{ backgroundColor: color.hex }}
+                  >
+                    {isSelected ? (
+                      <Check
+                        className={cn(
+                          "size-[18px]",
+                          isLightSwatch(color.hex)
+                            ? "text-foreground"
+                            : "text-primary-foreground"
+                        )}
+                        strokeWidth={2.67}
+                      />
+                    ) : null}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-xs",
+                      isSelected
+                        ? "font-bold text-foreground"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {color.name}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      ) : null}
 
       <div className="mx-4 flex flex-col gap-1.5 rounded-lg border border-border bg-card p-4">
         <h2 className="text-sm font-bold text-foreground">ထုတ်ကုန် အကြောင်း</h2>

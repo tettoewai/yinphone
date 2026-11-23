@@ -1,5 +1,4 @@
 import {
-  CATEGORIES,
   DEFAULT_CATALOG_SORT,
   PRICE_RANGES,
   SIZES,
@@ -28,16 +27,21 @@ function firstValue(value: string | string[] | undefined) {
   return value ?? ""
 }
 
-/** Parses untrusted URL params into a valid catalog query. */
-export function parseCatalogQuery(params: RawSearchParams): CatalogQuery {
+/**
+ * Parses untrusted URL params into a valid catalog query. Categories come from
+ * the API, so anything not in `categorySlugs` is dropped.
+ */
+export function parseCatalogQuery(
+  params: RawSearchParams,
+  categorySlugs: string[]
+): CatalogQuery {
   const categoryValue = firstValue(params.category)
   const priceValue = firstValue(params.price)
   const sizeValue = firstValue(params.size)
   const sortValue = firstValue(params.sort)
 
   return {
-    category:
-      CATEGORIES.find((entry) => entry.id === categoryValue)?.id ?? null,
+    category: categorySlugs.includes(categoryValue) ? categoryValue : null,
     price: PRICE_RANGES.find((entry) => entry.id === priceValue)?.id ?? null,
     size: SIZES.find((entry) => entry === sizeValue) ?? null,
     q: firstValue(params.q).trim().slice(0, 60),

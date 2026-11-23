@@ -2,10 +2,13 @@ import { Lock } from "lucide-react"
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
 
-import { getProductDetail } from "@/components/product-detail-data"
-import OrderConfirmHeader from "@/components/order-confirm-header"
 import { MAX_ORDER_QTY, MIN_ORDER_QTY } from "@/components/order-data"
+import OrderConfirmHeader from "@/components/order-confirm-header"
 import OrderSummaryCard from "@/components/order-summary-card"
+import { toProductDetail } from "@/components/product-detail-data"
+import { fetchProduct } from "@/lib/api"
+
+export const dynamic = "force-dynamic"
 
 type OrderPageProps = {
   params: Promise<{ id: string }>
@@ -20,15 +23,15 @@ export async function generateMetadata({
   params,
 }: OrderPageProps): Promise<Metadata> {
   const { id } = await params
-  const detail = getProductDetail(id)
+  const product = await fetchProduct(id)
 
-  if (!detail) {
+  if (!product) {
     return { title: "ပစ္စည်း မတွေ့ပါ — YinPhone" }
   }
 
   return {
     title: "Order summary — YinPhone",
-    description: `${detail.subtitle} ကို Messenger၊ Viber သို့မဟုတ် Telegram ဖြင့် မှာယူရန် အကျဉ်းချုပ်။`,
+    description: `${product.nameEn} ကို Messenger၊ Viber သို့မဟုတ် Telegram ဖြင့် မှာယူရန် အကျဉ်းချုပ်။`,
   }
 }
 
@@ -38,9 +41,11 @@ export default async function OrderPage({
 }: OrderPageProps) {
   const { id } = await params
   const query = await searchParams
-  const detail = getProductDetail(id)
+  const product = await fetchProduct(id)
 
-  if (!detail) notFound()
+  if (!product) notFound()
+
+  const detail = toProductDetail(product)
 
   // Sold-out pieces have no order screen.
   if (detail.soldOut) redirect(`/products/${detail.id}`)
@@ -66,13 +71,14 @@ export default async function OrderPage({
   return (
     <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body">
       <OrderConfirmHeader
-        productId={detail.id}
+        productSlug={detail.id}
         title={detail.subtitle}
         price={detail.price}
       />
 
       <OrderSummaryCard
-        productId={detail.id}
+        productId={detail.productId}
+        productSlug={detail.id}
         image={detail.gallery[0] ?? detail.image}
         alt={detail.alt}
         title={detail.title}

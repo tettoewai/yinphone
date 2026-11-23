@@ -6,11 +6,25 @@ import Hero from "@/components/hero"
 import ProductCard from "@/components/product-card"
 import QuickCategories from "@/components/quick-categories"
 import TrustStrip from "@/components/trust-strip"
-import { getFeaturedProducts } from "@/components/catalog-data"
+import {
+  pickFeatured,
+  toCatalogCategory,
+  toCatalogProduct,
+} from "@/components/catalog-data"
+import { fetchCategories, fetchProducts } from "@/lib/api"
 
-const featured = getFeaturedProducts()
+// The catalogue is the source of truth for prices and stock, so the page is
+// rendered per request rather than baked in at build time.
+export const dynamic = "force-dynamic"
 
-export default function Page() {
+export default async function Page() {
+  const [products, categories] = await Promise.all([
+    fetchProducts({ limit: 100 }),
+    fetchCategories(),
+  ])
+
+  const featured = pickFeatured(products.map(toCatalogProduct))
+
   return (
     <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body">
       <AppHeader />
@@ -25,7 +39,7 @@ export default function Page() {
             See all
           </Link>
         </div>
-        <QuickCategories />
+        <QuickCategories categories={categories.map(toCatalogCategory)} />
       </section>
 
       <section className="flex flex-col gap-3 pt-6">

@@ -33,8 +33,8 @@ export default function Footer() {
         <Link href="/catalog?sort=newest" className="min-h-[28px]">
           New arrivals
         </Link>
-        <Link href="/catalog?category=sale" className="min-h-[28px]">
-          Sale
+        <Link href="/catalog?category=longyi" className="min-h-[28px]">
+          Longyi
         </Link>
         <Link href="/saved" className="min-h-[28px]">
           Saved

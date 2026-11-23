@@ -28,12 +28,15 @@ import {
   MIN_ORDER_QTY,
   type OrderDraft,
 } from "@/components/order-data"
+import { createOrder } from "@/lib/api"
 import { channelSupportsPrefill, chatHref, type ChatChannel } from "@/lib/chat"
-import { createOrder, peekNextOrderCode } from "@/lib/orders"
 import { useClipboard } from "@/lib/use-clipboard"
 
 type OrderSummaryCardProps = {
+  /** Database id — what the orders API keys on. */
   productId: string
+  /** Slug — used for links back to the product. */
+  productSlug: string
   image: string
   alt: string
   title: string
@@ -52,6 +55,7 @@ function clampQty(value: number, maxQty: number) {
 
 export default function OrderSummaryCard({
   productId,
+  productSlug,
   image,
   alt,
   title,
@@ -72,16 +76,32 @@ export default function OrderSummaryCard({
   const [customerName, setCustomerName] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
   const [origin, setOrigin] = useState("")
-  const [nextCode, setNextCode] = useState("")
   const [placedCode, setPlacedCode] = useState<string | null>(null)
+  const [isPlacing, setIsPlacing] = useState(false)
+  const [showErrors, setShowErrors] = useState(false)
+  const [placeError, setPlaceError] = useState("")
   const { copiedKey, copy } = useClipboard()
 
-  // Resolved after mount: the code lives in localStorage and the message needs
-  // an absolute product URL.
+  // Resolved after mount: the message needs an absolute product URL.
   useEffect(() => {
     setOrigin(window.location.origin)
-    setNextCode(peekNextOrderCode())
   }, [])
+
+  const name = customerName.trim()
+  const phone = customerPhone.trim()
+  const phoneDigits = phone.replace(/\D/g, "")
+
+  const phoneFormatError =
+    phone && (phoneDigits.length < 7 || phoneDigits.length > 15)
+      ? "ဖုန်းနံပါတ် မမှန်ပါ • Enter a valid phone number"
+      : ""
+  // The API will not accept an order without a name and a phone number.
+  const nameError = showErrors && !name ? "အမည် ဖြည့်ပါ • Enter your name" : ""
+  const phoneError =
+    phoneFormatError ||
+    (showErrors && !phone
+      ? "ဖုန်းနံပါတ် ဖြည့်ပါ • Enter your phone number"
+      : "")
 
   const draft: OrderDraft = {
     title,
@@ -93,64 +113,103 @@ export default function OrderSummaryCard({
   }
   const total = getOrderTotal(draft)
   const orderLine = buildOrderLine(draft)
-  const productHref = `/products/${productId}`
+  const productHref = `/products/${productSlug}`
   const productUrl = origin ? `${origin}${productHref}` : productHref
 
-  const phoneDigits = customerPhone.replace(/\D/g, "")
-  const phoneError =
-    customerPhone.trim() && (phoneDigits.length < 7 || phoneDigits.length > 15)
-      ? "ဖုန်းနံပါတ် မမှန်ပါ • Enter a valid phone number"
-      : ""
-
   const isPlaced = Boolean(placedCode)
-  const code = placedCode ?? nextCode
+  const isLocked = isPlaced || isPlacing
 
+  // Only a confirmed order has a code; a guess would not match the database.
   const message = buildOrderMessage(draft, {
-    code: code || undefined,
-    customerName: customerName.trim() || undefined,
-    customerPhone: customerPhone.trim() || undefined,
+    code: placedCode ?? undefined,
+    customerName: name || undefined,
+    customerPhone: phone || undefined,
     productUrl,
   })
 
-  function placeOrder(channel: ChatChannel) {
+  /**
+   * Registers the order so the shop has it — with its real code — before the
+   * chat opens. Prices are resolved by the API, never sent from this form.
+   */
+  async function placeOrder(channel: ChatChannel) {
     if (placedCode) return placedCode
 
-    const order = createOrder(
-      {
+    setIsPlacing(true)
+    setPlaceError("")
+
+    try {
+      const order = await createOrder({
+        customerName: name,
+        customerPhone: phone,
         channel,
-        customerName: customerName.trim() || undefined,
-        customerPhone: customerPhone.trim() || undefined,
         items: [
           {
             productId,
-            title,
-            subtitle,
-            qty,
-            unitPrice: price,
-            size,
-            colorName,
+            quantity: qty,
+            ...(size ? { size } : {}),
           },
         ],
-        total,
-      },
-      nextCode || undefined
-    )
+      })
 
-    setPlacedCode(order.code)
+      setPlacedCode(order.code)
 
-    return order.code
+      return order.code
+    } catch {
+      setPlaceError(
+        "အမှာစာ မပို့နိုင်ပါ • Could not place the order. Please try again."
+      )
+
+      return null
+    } finally {
+      setIsPlacing(false)
+    }
   }
 
-  function handleChannelClick(channel: ChatChannel) {
-    if (phoneError) return
+  async function handleChannelClick(channel: ChatChannel) {
+    if (isPlacing) return
 
-    placeOrder(channel)
+    if (!isPlaced && (phoneFormatError || !name || !phone)) {
+      setShowErrors(true)
+      return
+    }
+
+    // Opened before the await so the browser still counts it as a click.
+    const pendingWindow = channel === "viber" ? null : window.open("", "_blank")
+
+    const code = placedCode ?? (await placeOrder(channel))
+
+    if (!code) {
+      pendingWindow?.close()
+      return
+    }
+
+    const finalMessage = buildOrderMessage(draft, {
+      code,
+      customerName: name || undefined,
+      customerPhone: phone || undefined,
+      productUrl,
+    })
 
     // Telegram carries the text in the deep link; Messenger and Viber cannot,
     // so put the order on the clipboard for the customer to paste.
     if (!channelSupportsPrefill(channel)) {
-      void copy(message, channel)
+      void copy(finalMessage, channel)
     }
+
+    const href = chatHref(channel, finalMessage)
+
+    if (pendingWindow) {
+      pendingWindow.opener = null
+      pendingWindow.location.href = href
+      return
+    }
+
+    if (channel === "viber") {
+      window.location.href = href
+      return
+    }
+
+    window.open(href, "_blank", "noopener,noreferrer")
   }
 
   return (
@@ -219,7 +278,7 @@ export default function OrderSummaryCard({
           <button
             type="button"
             onClick={() => setQty((value) => clampQty(value - 1, maxQty))}
-            disabled={qty <= MIN_ORDER_QTY || isPlaced}
+            disabled={qty <= MIN_ORDER_QTY || isLocked}
             aria-label="Decrease quantity"
             className="flex h-[44px] w-[44px] items-center justify-center text-muted-foreground disabled:opacity-50"
           >
@@ -234,7 +293,7 @@ export default function OrderSummaryCard({
           <button
             type="button"
             onClick={() => setQty((value) => clampQty(value + 1, maxQty))}
-            disabled={qty >= maxQty || isPlaced}
+            disabled={qty >= maxQty || isLocked}
             aria-label="Increase quantity"
             className="flex h-[44px] w-[44px] items-center justify-center bg-primary text-primary-foreground disabled:opacity-50"
           >
@@ -272,7 +331,7 @@ export default function OrderSummaryCard({
       <div className="mx-5 mt-3 flex flex-col gap-2">
         <div className="text-sm font-semibold text-foreground">
           သင့်အချက်အလက်{" "}
-          <span className="font-normal text-muted-foreground">• Optional</span>
+          <span className="font-normal text-muted-foreground">• Required</span>
         </div>
 
         <label className="flex flex-col gap-1">
@@ -283,11 +342,22 @@ export default function OrderSummaryCard({
             onChange={(event) => setCustomerName(event.target.value)}
             maxLength={60}
             autoComplete="name"
-            disabled={isPlaced}
+            disabled={isLocked}
+            aria-invalid={Boolean(nameError)}
+            aria-describedby={nameError ? "order-name-error" : undefined}
             placeholder="Ma Thida"
-            className="min-h-[44px] w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-60"
+            className={cn(
+              "min-h-[44px] w-full rounded-md border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-60",
+              nameError ? "border-destructive" : "border-border"
+            )}
           />
         </label>
+
+        {nameError ? (
+          <p id="order-name-error" className="text-xs text-destructive">
+            {nameError}
+          </p>
+        ) : null}
 
         <label className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">ဖုန်း • Phone</span>
@@ -298,7 +368,7 @@ export default function OrderSummaryCard({
             onChange={(event) => setCustomerPhone(event.target.value)}
             maxLength={20}
             autoComplete="tel"
-            disabled={isPlaced}
+            disabled={isLocked}
             aria-invalid={Boolean(phoneError)}
             aria-describedby={phoneError ? "order-phone-error" : undefined}
             placeholder="09 xxx xxx xxx"
@@ -331,6 +401,17 @@ export default function OrderSummaryCard({
         </div>
       ) : null}
 
+      {placeError ? (
+        <div
+          role="alert"
+          className="mx-5 mt-3 rounded-md border border-destructive/40 bg-background px-3 py-2.5"
+        >
+          <p className="font-body text-xs leading-[1.7] text-destructive">
+            {placeError}
+          </p>
+        </div>
+      ) : null}
+
       <div className="mx-5 mt-3 flex items-center gap-2.5 rounded-md border border-dashed border-border bg-background px-3 py-2.5">
         <ClipboardList
           className="size-[17px] shrink-0 text-primary"
@@ -358,17 +439,14 @@ export default function OrderSummaryCard({
           href={chatHref("messenger", message)}
           target="_blank"
           rel="noopener noreferrer"
-          aria-disabled={Boolean(phoneError)}
+          aria-disabled={isPlacing}
           onClick={(event) => {
-            if (phoneError) {
-              event.preventDefault()
-              return
-            }
-            handleChannelClick("messenger")
+            event.preventDefault()
+            void handleChannelClick("messenger")
           }}
           className={cn(
             "flex min-h-[52px] w-full items-center justify-center gap-2 rounded-md bg-messenger text-[15px] font-bold text-primary-foreground",
-            phoneError && "pointer-events-none opacity-50"
+            isPlacing && "pointer-events-none opacity-50"
           )}
         >
           <MessageCircle className="size-[19px]" strokeWidth={2.53} />
@@ -381,17 +459,14 @@ export default function OrderSummaryCard({
         <div className="flex gap-2">
           <a
             href={chatHref("viber", message)}
-            aria-disabled={Boolean(phoneError)}
+            aria-disabled={isPlacing}
             onClick={(event) => {
-              if (phoneError) {
-                event.preventDefault()
-                return
-              }
-              handleChannelClick("viber")
+              event.preventDefault()
+              void handleChannelClick("viber")
             }}
             className={cn(
               "flex min-h-[48px] flex-1 items-center justify-center gap-1.5 rounded-md bg-viber text-sm font-bold text-white",
-              phoneError && "pointer-events-none opacity-50"
+              isPlacing && "pointer-events-none opacity-50"
             )}
           >
             <Phone className="size-4" strokeWidth={3} />
@@ -401,17 +476,14 @@ export default function OrderSummaryCard({
             href={chatHref("telegram", message)}
             target="_blank"
             rel="noopener noreferrer"
-            aria-disabled={Boolean(phoneError)}
+            aria-disabled={isPlacing}
             onClick={(event) => {
-              if (phoneError) {
-                event.preventDefault()
-                return
-              }
-              handleChannelClick("telegram")
+              event.preventDefault()
+              void handleChannelClick("telegram")
             }}
             className={cn(
               "flex min-h-[48px] flex-1 items-center justify-center gap-1.5 rounded-md bg-telegram text-sm font-bold text-white",
-              phoneError && "pointer-events-none opacity-50"
+              isPlacing && "pointer-events-none opacity-50"
             )}
           >
             <Send className="size-4" strokeWidth={3} />

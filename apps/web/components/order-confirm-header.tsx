@@ -4,20 +4,20 @@ import Link from "next/link"
 import { formatPrice } from "@/components/catalog-data"
 
 type OrderConfirmHeaderProps = {
-  productId: string
+  productSlug: string
   title: string
   price: number
 }
 
 export default function OrderConfirmHeader({
-  productId,
+  productSlug,
   title,
   price,
 }: OrderConfirmHeaderProps) {
   return (
     <header className="flex items-center gap-1 border-b border-border bg-background px-3 py-2">
       <Link
-        href={`/products/${productId}`}
+        href={`/products/${productSlug}`}
         aria-label="Go back to product"
         className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md"
       >

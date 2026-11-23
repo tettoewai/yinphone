@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
         hostname: "storage.googleapis.com",
         pathname: "/banani-generated-images/**",
       },
+      {
+        // Product photos seeded from `apps/api/prisma/seed.ts`.
+        protocol: "https",
+        hostname: "i.pinimg.com",
+        pathname: "/**",
+      },
     ],
   },
 }

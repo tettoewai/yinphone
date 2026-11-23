@@ -7,14 +7,13 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import BottomSheet from "@/components/bottom-sheet"
 import {
-  CATEGORIES,
   PRICE_RANGES,
   SIZES,
   filterProducts,
   toMyanmarDigits,
+  type CatalogCategory,
   type CatalogFilters,
   type CatalogProduct,
-  type CategoryId,
   type PriceId,
   type SizeId,
 } from "@/components/catalog-data"
@@ -23,6 +22,7 @@ const EMPTY_DRAFT: CatalogFilters = { category: null, price: null, size: null }
 
 type FilterSheetProps = {
   products: CatalogProduct[]
+  categories: CatalogCategory[]
   initialFilters: CatalogFilters
   onApply: (filters: CatalogFilters) => void
   onClose: () => void
@@ -30,6 +30,7 @@ type FilterSheetProps = {
 
 export default function FilterSheet({
   products,
+  categories,
   initialFilters,
   onApply,
   onClose,
@@ -37,10 +38,10 @@ export default function FilterSheet({
   const [draft, setDraft] = useState<CatalogFilters>(initialFilters)
   const resultCount = filterProducts(products, draft).length
 
-  function toggleCategory(id: CategoryId) {
+  function toggleCategory(slug: string) {
     setDraft((current) => ({
       ...current,
-      category: current.category === id ? null : id,
+      category: current.category === slug ? null : slug,
     }))
   }
 
@@ -86,14 +87,14 @@ export default function FilterSheet({
         <div className="flex flex-col gap-2">
           <div className="text-sm font-semibold text-foreground">Category</div>
           <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((category) => {
-              const selected = draft.category === category.id
+            {categories.map((category) => {
+              const selected = draft.category === category.slug
               return (
                 <button
-                  key={category.id}
+                  key={category.slug}
                   type="button"
                   aria-pressed={selected}
-                  onClick={() => toggleCategory(category.id)}
+                  onClick={() => toggleCategory(category.slug)}
                   className={cn(
                     "flex min-h-[44px] items-center rounded-md px-4 font-body text-sm",
                     selected
@@ -101,7 +102,7 @@ export default function FilterSheet({
                       : "border border-border bg-card font-medium text-foreground"
                   )}
                 >
-                  {category.label}
+                  {category.nameMy}
                 </button>
               )
             })}

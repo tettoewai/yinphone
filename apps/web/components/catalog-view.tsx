@@ -18,13 +18,13 @@ import CatalogHeader from "@/components/catalog-header"
 import EmptyState from "@/components/empty-state"
 import FilterSheet from "@/components/filter-sheet"
 import {
-  CATEGORIES,
   PRICE_RANGES,
   SORT_OPTIONS,
   filterProducts,
   searchProducts,
   sortProducts,
   toMyanmarDigits,
+  type CatalogCategory,
   type CatalogFilters,
   type CatalogProduct,
   type CatalogSort,
@@ -35,10 +35,15 @@ const PAGE_SIZE = 6
 
 type CatalogViewProps = {
   products: CatalogProduct[]
+  categories: CatalogCategory[]
   initial: CatalogQuery
 }
 
-export default function CatalogView({ products, initial }: CatalogViewProps) {
+export default function CatalogView({
+  products,
+  categories,
+  initial,
+}: CatalogViewProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
@@ -103,7 +108,7 @@ export default function CatalogView({ products, initial }: CatalogViewProps) {
 
   const visible = results.slice(0, visibleCount)
 
-  const categoryLabel = CATEGORIES.find((entry) => entry.id === category)
+  const categoryLabel = categories.find((entry) => entry.slug === category)
   const priceLabel = PRICE_RANGES.find((entry) => entry.id === price)
 
   const openFilters = useCallback(() => setIsFilterOpen(true), [])
@@ -137,8 +142,8 @@ export default function CatalogView({ products, initial }: CatalogViewProps) {
   return (
     <>
       <CatalogHeader
-        title={categoryLabel?.label ?? "ပစ္စည်းအားလုံး"}
-        subtitle={`${categoryLabel?.en ?? "All items"} • ${toMyanmarDigits(
+        title={categoryLabel?.nameMy ?? "ပစ္စည်းအားလုံး"}
+        subtitle={`${categoryLabel?.nameEn ?? "All items"} • ${toMyanmarDigits(
           results.length
         )} မျိုး`}
         search={{
@@ -151,7 +156,7 @@ export default function CatalogView({ products, initial }: CatalogViewProps) {
 
       <div className="flex gap-2 overflow-x-auto px-4 py-3">
         <FilterChip
-          label={categoryLabel?.chip ?? "အမျိုးအစား"}
+          label={categoryLabel?.nameMy ?? "အမျိုးအစား"}
           active={Boolean(categoryLabel)}
           onClick={openFilters}
         />
@@ -264,6 +269,7 @@ export default function CatalogView({ products, initial }: CatalogViewProps) {
       {isFilterOpen ? (
         <FilterSheet
           products={products}
+          categories={categories}
           initialFilters={{ category, price, size }}
           onApply={applyFilters}
           onClose={closeFilters}

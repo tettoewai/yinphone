@@ -6,14 +6,20 @@ import Link from "next/link"
 import CatalogCard from "@/components/catalog-card"
 import CatalogHeader from "@/components/catalog-header"
 import {
-  getProductsByIds,
+  pickByIds,
   toMyanmarDigits,
+  type CatalogProduct,
 } from "@/components/catalog-data"
 import { useFavourites } from "@/lib/favourites"
 
-export default function SavedView() {
+type SavedViewProps = {
+  /** The whole catalogue; favourites are a set of slugs within it. */
+  products: CatalogProduct[]
+}
+
+export default function SavedView({ products }: SavedViewProps) {
   const { ids, isReady, clear } = useFavourites()
-  const saved = getProductsByIds(ids)
+  const saved = pickByIds(products, ids)
 
   if (!isReady) {
     return (
@@ -41,10 +47,7 @@ export default function SavedView() {
       {saved.length === 0 ? (
         <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-secondary">
-            <Heart
-              className="size-[34px] text-primary"
-              strokeWidth={1.6}
-            />
+            <Heart className="size-[34px] text-primary" strokeWidth={1.6} />
           </div>
           <div className="font-body text-base leading-[1.7] font-semibold text-foreground">
             သိမ်းထားသော ပစ္စည်း မရှိသေးပါ

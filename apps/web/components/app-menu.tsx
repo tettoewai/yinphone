@@ -10,7 +10,6 @@ import {
   Send,
   ShoppingBag,
   Sparkles,
-  Tag,
   type LucideIcon,
 } from "lucide-react"
 import Link from "next/link"
@@ -40,12 +39,6 @@ const LINKS: MenuLink[] = [
     labelMy: "အသစ်ရောက်များ",
     labelEn: "New arrivals",
     icon: Sparkles,
-  },
-  {
-    href: "/catalog?category=sale",
-    labelMy: "လျှော့ဈေး",
-    labelEn: "Sale",
-    icon: Tag,
   },
   {
     href: "/about",
