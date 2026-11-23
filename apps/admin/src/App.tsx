@@ -5,6 +5,7 @@ import {
   RequirePasswordReset,
   RequireSignedOut,
 } from "@/auth/guards"
+import { AdminLayout } from "@/components/admin-layout"
 import { ROUTES } from "@/lib/routes"
 import { DashboardPage } from "@/pages/dashboard-page"
 import { ForgotPasswordPage } from "@/pages/forgot-password-page"
@@ -39,13 +40,14 @@ export default function App() {
         }
       />
       <Route
-        path={ROUTES.dashboard}
         element={
           <RequireAuth>
-            <DashboardPage />
+            <AdminLayout />
           </RequireAuth>
         }
-      />
+      >
+        <Route path={ROUTES.dashboard} element={<DashboardPage />} />
+      </Route>
       <Route path="/" element={<Navigate to={ROUTES.dashboard} replace />} />
       <Route path="*" element={<Navigate to={ROUTES.dashboard} replace />} />
     </Routes>

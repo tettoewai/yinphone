@@ -1,58 +1,94 @@
 import { Button } from "@workspace/ui/components/button"
-import { Leaf, LogOut } from "lucide-react"
+import { Banknote, Bell, Plus, ShoppingBag, Truck } from "lucide-react"
 
 import { useSession } from "@/auth/session-context"
+import { AdminPageHeader } from "@/components/admin-page-header"
+import { ChannelSplit } from "@/components/dashboard/channel-split"
+import { GreetingCard } from "@/components/dashboard/greeting-card"
+import { KpiCard, type Kpi } from "@/components/dashboard/kpi-card"
+import {
+  OrdersEmptyState,
+  RecentOrders,
+} from "@/components/dashboard/recent-orders"
+import { SalesChart } from "@/components/dashboard/sales-chart"
+import { RECENT_ORDERS } from "@/lib/dashboard-mock"
+import { yangonNow } from "@/lib/yangon-time"
+
+/** Today's headline figures. Placeholder values until the stats API exists. */
+const KPIS: readonly Kpi[] = [
+  {
+    key: "orders-today",
+    icon: ShoppingBag,
+    value: "14",
+    label: "ယနေ့ မှာယူမှုများ",
+    detail: "Today's orders • +3 vs yesterday",
+  },
+  {
+    key: "sales-today",
+    icon: Banknote,
+    value: "684,500 Ks",
+    label: "ယနေ့ ရောင်းအား",
+    detail: "Today's sales • 12 orders paid",
+  },
+  {
+    key: "awaiting-confirm",
+    icon: Bell,
+    value: "6 NEW",
+    label: "အတည်ပြုရန် ကျန်",
+    detail: "Awaiting confirm • Needs reply < 1 hr",
+    highlight: true,
+    badge: "GOLD • NEW",
+  },
+  {
+    key: "to-deliver",
+    icon: Truck,
+    value: "9",
+    label: "ပို့ရန် ကျန်",
+    detail: "To deliver • 4 Royal • 5 Ninja",
+  },
+]
 
 export function DashboardPage() {
-  const { user, signOut } = useSession()
+  const { user } = useSession()
+  const now = yangonNow()
 
   return (
-    <div className="flex min-h-svh flex-col bg-background font-body">
-      <header className="flex min-h-16 items-center justify-between border-b border-border bg-card px-6 sm:px-8">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-10 items-center justify-center rounded-md bg-primary">
-            <Leaf
-              className="size-[19px] text-primary-foreground"
-              strokeWidth={2.5}
-            />
-          </span>
-          <div>
-            <div className="font-heading text-base leading-tight font-bold text-foreground">
-              YinPhone Boutique
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Admin console • Asia/Yangon
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="hidden text-right sm:block">
-            <div className="text-sm font-bold text-foreground">
-              {user?.name}
-            </div>
-            <div className="text-xs text-muted-foreground">{user?.role}</div>
-          </div>
-          <Button variant="outline" onClick={() => void signOut()}>
-            <LogOut className="size-4" />
-            Sign out
+    <>
+      <AdminPageHeader
+        title="ဒက်ရှ်ဘုတ်"
+        subtitle={`Dashboard overview • ${now.shortDate}, Yangon time`}
+        actions={
+          <Button
+            disabled
+            title="Coming soon"
+            className="min-h-12 gap-2 px-5 text-sm font-bold"
+          >
+            <Plus className="size-4" strokeWidth={3} />
+            ထုတ်ကုန်အသစ်
           </Button>
-        </div>
-      </header>
+        }
+      />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
-        <div className="rounded-lg border border-border bg-card p-8">
-          <h1 className="font-heading text-2xl font-semibold text-foreground">
-            မင်္ဂလာပါ, {user?.name}
-          </h1>
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            You are signed in as <strong>{user?.email}</strong>. The dashboard
-            screens (orders, products, overview) are the next step — the auth
-            flow, forced password reset, and session handling are all wired to
-            the API.
-          </p>
+      <main className="flex flex-1 flex-col gap-5 px-4 py-5 sm:px-6">
+        <GreetingCard name={user?.name ?? "Admin"} now={now} />
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {KPIS.map((kpi) => (
+            <KpiCard key={kpi.key} kpi={kpi} />
+          ))}
         </div>
+
+        <div className="grid gap-4 lg:grid-cols-5">
+          <SalesChart />
+          <ChannelSplit />
+        </div>
+
+        {RECENT_ORDERS.length === 0 ? (
+          <OrdersEmptyState />
+        ) : (
+          <RecentOrders orders={RECENT_ORDERS} />
+        )}
       </main>
-    </div>
+    </>
   )
 }
