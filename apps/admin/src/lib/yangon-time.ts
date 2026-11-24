@@ -108,12 +108,20 @@ export function formatOrderPlaced(value: string | Date) {
   return `${dayMonthYearFormatter.format(date)}, ${timeFormatter.format(date)}`
 }
 
-/** "10:24 AM" — the mobile order card, where the day is implied. */
-export function formatOrderTime(value: string | Date) {
+/**
+ * "10:24 AM" — a bare Yangon clock time, e.g. the categories screen's
+ * "Saved in this tab" chip.
+ */
+export function formatClockTime(value: string | Date) {
   const date = toDate(value)
   if (!date) return "—"
 
   return timeFormatter.format(date)
+}
+
+/** "10:24 AM" — the mobile order card, where the day is implied. */
+export function formatOrderTime(value: string | Date) {
+  return formatClockTime(value)
 }
 
 export type YangonNow = {

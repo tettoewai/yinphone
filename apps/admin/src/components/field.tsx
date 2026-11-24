@@ -17,7 +17,8 @@ const inputText =
 type FieldProps = {
   id: string
   label: string
-  labelEn: string
+  /** The Latin half of a bilingual label; omitted where the label is one line. */
+  labelEn?: string
   /** Right-aligned marker in the label row, e.g. the product form's "Required". */
   aside?: ReactNode
   hint?: string
@@ -41,10 +42,13 @@ export function Field({
         className="flex items-baseline justify-between gap-2 font-body text-sm leading-[1.7] font-bold text-foreground"
       >
         <span>
-          {label}{" "}
-          <span className="text-xs font-normal text-muted-foreground">
-            • {labelEn}
-          </span>
+          {label}
+          {labelEn ? (
+            <span className="text-xs font-normal text-muted-foreground">
+              {" • "}
+              {labelEn}
+            </span>
+          ) : null}
         </span>
         {aside ? (
           <span className="shrink-0 text-xs font-normal text-muted-foreground">
@@ -76,7 +80,7 @@ export function Field({
 type TextFieldProps = {
   id: string
   label: string
-  labelEn: string
+  labelEn?: string
   value: string
   onChange: (value: string) => void
   onBlur?: () => void

@@ -61,6 +61,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     label: "အမျိုးအစားများ",
     labelEn: "Categories",
     icon: Tags,
+    to: ROUTES.categories,
   },
   {
     key: "channels",

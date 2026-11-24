@@ -33,10 +33,10 @@ index.html          Vite entry document
 design/             Banani design mocks (reference only, not served)
 src/main.tsx        Mounts the app inside ThemeProvider, Router and SessionProvider
 src/App.tsx         Route table and the auth guards
-src/pages/          Sign-in, password reset, dashboard, orders and products
+src/pages/          Sign-in, password reset, dashboard, orders, products, categories
 src/auth/           Session context, provider and route guards
-src/components/     Admin shell, dashboard panels, orders, products, form fields
-src/lib/            API client, order/product types and mocks, paging, formatters
+src/components/     Admin shell, dashboard panels, orders, products, categories, fields
+src/lib/            API client, order/product/category types and mocks, paging, formatters
 vite.config.ts      React, React Compiler, Tailwind, `@/` and the `/api` proxy
 ```
 
@@ -110,6 +110,13 @@ anything that would need a write endpoint (manual order, editing an existing
 product) is a disabled placeholder. `/products/new` is the add-product form: it
 validates a local draft, takes photos as object URLs and returns to the list on
 save, since there is no `POST /api/products` yet.
+
+`/categories` is the sort-order screen, and it is local in the same way: the six
+rows come from `src/lib/categories.ts`, and dragging a row, renaming a category,
+the storefront-visibility toggle and deleting an empty one all update the page's
+state — which is what the "Saved in this tab" chip reports. Delete stays
+disabled while a category still has products (they would be orphaned), and a new
+category derives its read-only slug from its English name.
 
 ## Shared UI
 

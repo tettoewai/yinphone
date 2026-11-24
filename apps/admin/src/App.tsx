@@ -7,6 +7,7 @@ import {
 } from "@/auth/guards"
 import { AdminLayout } from "@/components/admin-layout"
 import { ROUTES } from "@/lib/routes"
+import { CategoriesPage } from "@/pages/categories-page"
 import { DashboardPage } from "@/pages/dashboard-page"
 import { ForgotPasswordPage } from "@/pages/forgot-password-page"
 import { LoginPage } from "@/pages/login-page"
@@ -55,6 +56,7 @@ export default function App() {
         <Route path={ROUTES.orderDetail} element={<OrderDetailsPage />} />
         <Route path={ROUTES.products} element={<ProductsPage />} />
         <Route path={ROUTES.productNew} element={<ProductFormPage />} />
+        <Route path={ROUTES.categories} element={<CategoriesPage />} />
       </Route>
       <Route path="/" element={<Navigate to={ROUTES.dashboard} replace />} />
       <Route path="*" element={<Navigate to={ROUTES.dashboard} replace />} />
