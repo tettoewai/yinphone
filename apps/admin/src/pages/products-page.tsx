@@ -1,6 +1,8 @@
-import { Button } from "@workspace/ui/components/button"
+import { buttonVariants } from "@workspace/ui/components/button"
+import { cn } from "@workspace/ui/lib/utils"
 import { Plus } from "lucide-react"
 import { useMemo, useRef, useState } from "react"
+import { Link } from "react-router-dom"
 
 import { AdminPageHeader } from "@/components/admin-page-header"
 import { HideProductDialog } from "@/components/products/hide-product-dialog"
@@ -31,6 +33,7 @@ import {
   type VisibilityFilter,
 } from "@/lib/products"
 import { PRODUCTS_MOCK } from "@/lib/products-mock"
+import { ROUTES } from "@/lib/routes"
 
 /**
  * The products list (`/products`).
@@ -200,14 +203,16 @@ export function ProductsPage() {
         title="ထုတ်ကုန်များ"
         subtitle={`Products • ${products.length} items • Asia/Yangon`}
         actions={
-          <Button
-            disabled
-            title="Product editor coming soon"
-            className="min-h-12 gap-2 px-5 text-sm font-bold"
+          <Link
+            to={ROUTES.productNew}
+            className={cn(
+              buttonVariants(),
+              "min-h-12 gap-2 px-5 text-sm font-bold"
+            )}
           >
             <Plus className="size-4" strokeWidth={3} />
             Add product
-          </Button>
+          </Link>
         }
       />
 

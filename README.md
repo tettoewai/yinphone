@@ -88,8 +88,10 @@ the storefront needs the API and its database running. It reads
 `apps/web/.env.example`).
 
 `apps/admin` is a Vite + React SPA wired to `@workspace/ui` and the shared
-Tailwind theme, but it has no admin screens yet — the design mock lives in
-`apps/admin/design/admin-login.html`.
+Tailwind theme. It signs in against this API and ships the dashboard overview,
+the orders list and detail screens, and the products list — all still on
+placeholder data while the stats and admin endpoints they need are built. The
+design mocks live in `apps/admin/design/`.
 
 ## Environment variables
 

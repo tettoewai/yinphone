@@ -8,6 +8,8 @@ export const ROUTES = {
   /** Pattern only — build concrete links with `orderDetailPath`. */
   orderDetail: "/orders/:code",
   products: "/products",
+  /** The add-product editor; static segment, so it outranks any `products/:id`. */
+  productNew: "/products/new",
   resetPassword: "/reset-password",
 } as const
 

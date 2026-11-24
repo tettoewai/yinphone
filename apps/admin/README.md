@@ -33,10 +33,10 @@ index.html          Vite entry document
 design/             Banani design mocks (reference only, not served)
 src/main.tsx        Mounts the app inside ThemeProvider, Router and SessionProvider
 src/App.tsx         Route table and the auth guards
-src/pages/          login, forgot-password, reset-password, dashboard placeholder
+src/pages/          Sign-in, password reset, dashboard, orders and products
 src/auth/           Session context, provider and route guards
-src/components/     Auth shell, admin field set, new-password block, alerts
-src/lib/            API client, password policy, routes and helpers
+src/components/     Admin shell, dashboard panels, orders, products, form fields
+src/lib/            API client, order/product types and mocks, paging, formatters
 vite.config.ts      React, React Compiler, Tailwind, `@/` and the `/api` proxy
 ```
 
@@ -94,6 +94,23 @@ the `font-body` and `font-heading` utilities.
 (Geist). Without it the `font-body` stack ends in an undefined variable, and the
 whole `font-family` declaration is dropped at computed-value time.
 
+## Orders and products (front end only)
+
+`/orders`, `/orders/:code` and `/products` render placeholder data from
+`src/lib/orders-mock.ts`, `order-details-mock.ts` and `products-mock.ts` — the
+endpoints behind them do not exist yet. Filtering, status counting and paging run
+in the browser (`src/lib/orders.ts`, `products.ts` and the shared `paging.ts`), so
+the screens respond instantly and drop onto a real response when those endpoints
+land. Order timestamps are relative to module load, which keeps the default
+"Last 7 days" filter populated instead of going stale after a week.
+
+Writes are simulated: the detail screen's status changes and the products list's
+hide/duplicate keep their state in the component with a 10-second undo, and
+anything that would need a write endpoint (manual order, editing an existing
+product) is a disabled placeholder. `/products/new` is the add-product form: it
+validates a local draft, takes photos as object URLs and returns to the list on
+save, since there is no `POST /api/products` yet.
+
 ## Shared UI
 
 Import components, hooks and helpers from the workspace package:
@@ -103,10 +120,13 @@ import { Button } from "@workspace/ui/components/button"
 ```
 
 `@/` is aliased to `src/`, and `@workspace/ui/*` maps to
-`packages/ui/src/*` in `tsconfig.app.json`. To add a component:
+`packages/ui/src/*` in `tsconfig.app.json`. Components are shared with the
+storefront, so they are added to `packages/ui` with the CLI version pinned
+there — this app has no `components.json` of its own:
 
 ```bash
-pnpm dlx shadcn@latest add button -c apps/admin
+cd packages/ui
+pnpm exec shadcn add <component>
 ```
 
 ## Type checking

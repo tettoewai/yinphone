@@ -12,9 +12,10 @@ type ProductRowActionsProps = {
 /**
  * Edit / duplicate / hide.
  *
- * Edit is the one action with no screen behind it yet, so it renders disabled
- * with a title rather than linking to the catch-all redirect. Duplicate and
- * hide act on the row in place — both offer Undo in the banner above the list.
+ * Edit is the one action with no screen behind it yet — the add form has no
+ * edit mode — so it renders disabled with a title rather than linking to the
+ * catch-all redirect. Duplicate and hide act on the row in place — both offer
+ * Undo in the banner above the list.
  */
 export function ProductRowActions({
   product,
@@ -26,7 +27,7 @@ export function ProductRowActions({
       <Button
         variant="outline"
         disabled
-        title="Product editor coming soon"
+        title="Editing an existing product is coming soon"
         className="min-h-11 gap-1 rounded-md px-3 text-[13px] font-semibold text-primary"
       >
         <Pencil className="size-3.5" strokeWidth={3.4} />

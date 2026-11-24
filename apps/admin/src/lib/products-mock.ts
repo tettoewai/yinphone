@@ -10,17 +10,23 @@
  * page needs.
  */
 
-import type { ProductCategory, ProductSummary } from "@/lib/products"
+import {
+  PRODUCT_CATEGORIES,
+  type ProductCategory,
+  type ProductSummary,
+} from "@/lib/products"
 
 /** Category keys used by the rows below; the API stores the full record. */
 type CategoryKey = "dresses" | "tops" | "skirts" | "trousers"
 
-const CATEGORIES: Record<CategoryKey, ProductCategory> = {
-  dresses: { slug: "dresses", nameMy: "ဂါဝန်", nameEn: "Dresses" },
-  tops: { slug: "tops", nameMy: "အပေါ်ထပ်", nameEn: "Tops" },
-  skirts: { slug: "skirts", nameMy: "စကတ်", nameEn: "Skirts" },
-  trousers: { slug: "trousers", nameMy: "ဘောင်းဘီ", nameEn: "Trousers" },
-}
+/**
+ * Keyed view of `PRODUCT_CATEGORIES`, so a row names its category with a
+ * checked literal rather than an index that `noUncheckedIndexedAccess` would
+ * widen to `undefined`.
+ */
+const CATEGORIES = Object.fromEntries(
+  PRODUCT_CATEGORIES.map((category) => [category.slug, category])
+) as Record<CategoryKey, ProductCategory>
 
 type MockProduct = Omit<ProductSummary, "id" | "category"> & {
   category: CategoryKey

@@ -1,5 +1,9 @@
-import { Button } from "@workspace/ui/components/button"
+import { Button, buttonVariants } from "@workspace/ui/components/button"
+import { cn } from "@workspace/ui/lib/utils"
 import { Plus, SearchX, Shirt, X } from "lucide-react"
+import { Link } from "react-router-dom"
+
+import { ROUTES } from "@/lib/routes"
 
 /**
  * What the list shows once the shop has no products at all. Unreachable while
@@ -20,14 +24,16 @@ export function ProductsEmpty() {
         No products yet • Tip: add 3+ bright photos per item — sales double.
       </p>
 
-      <Button
-        disabled
-        title="Product editor coming soon"
-        className="mt-1.5 min-h-12 gap-2 px-5 text-sm font-bold"
+      <Link
+        to={ROUTES.productNew}
+        className={cn(
+          buttonVariants(),
+          "mt-1.5 min-h-12 gap-2 px-5 text-sm font-bold"
+        )}
       >
         <Plus className="size-[15px]" strokeWidth={3.2} />
         Add your first product
-      </Button>
+      </Link>
     </div>
   )
 }

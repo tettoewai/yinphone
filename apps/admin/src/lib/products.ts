@@ -18,6 +18,17 @@ export type ProductCategory = {
   nameEn: string
 }
 
+/**
+ * The shop's categories until `GET /api/categories` exists. The product form's
+ * picker and the mock rows both read this list so the two cannot drift apart.
+ */
+export const PRODUCT_CATEGORIES: readonly ProductCategory[] = [
+  { slug: "dresses", nameMy: "ဂါဝန်", nameEn: "Dresses" },
+  { slug: "tops", nameMy: "အပေါ်ထပ်", nameEn: "Tops" },
+  { slug: "skirts", nameMy: "စကတ်", nameEn: "Skirts" },
+  { slug: "trousers", nameMy: "ဘောင်းဘီ", nameEn: "Trousers" },
+]
+
 /** One row of the products table. A real endpoint returns this shape. */
 export type ProductSummary = {
   id: string

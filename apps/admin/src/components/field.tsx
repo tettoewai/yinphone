@@ -18,6 +18,8 @@ type FieldProps = {
   id: string
   label: string
   labelEn: string
+  /** Right-aligned marker in the label row, e.g. the product form's "Required". */
+  aside?: ReactNode
   hint?: string
   error?: string
   children: ReactNode
@@ -27,6 +29,7 @@ export function Field({
   id,
   label,
   labelEn,
+  aside,
   hint,
   error,
   children,
@@ -35,12 +38,19 @@ export function Field({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={id}
-        className="font-body text-sm leading-[1.7] font-bold text-foreground"
+        className="flex items-baseline justify-between gap-2 font-body text-sm leading-[1.7] font-bold text-foreground"
       >
-        {label}{" "}
-        <span className="text-xs font-normal text-muted-foreground">
-          • {labelEn}
+        <span>
+          {label}{" "}
+          <span className="text-xs font-normal text-muted-foreground">
+            • {labelEn}
+          </span>
         </span>
+        {aside ? (
+          <span className="shrink-0 text-xs font-normal text-muted-foreground">
+            {aside}
+          </span>
+        ) : null}
       </label>
       {children}
       {error ? (
@@ -69,9 +79,11 @@ type TextFieldProps = {
   labelEn: string
   value: string
   onChange: (value: string) => void
+  onBlur?: () => void
   type?: "text" | "email"
   autoComplete?: string
   placeholder?: string
+  aside?: ReactNode
   hint?: string
   error?: string
   disabled?: boolean
@@ -83,15 +95,24 @@ export function TextField({
   labelEn,
   value,
   onChange,
+  onBlur,
   type = "text",
   autoComplete,
   placeholder,
+  aside,
   hint,
   error,
   disabled,
 }: TextFieldProps) {
   return (
-    <Field id={id} label={label} labelEn={labelEn} hint={hint} error={error}>
+    <Field
+      id={id}
+      label={label}
+      labelEn={labelEn}
+      aside={aside}
+      hint={hint}
+      error={error}
+    >
       <div
         className={cn(inputShell, error ? "border-accent" : "border-border")}
       >
@@ -100,6 +121,7 @@ export function TextField({
           type={type}
           value={value}
           onChange={(event) => onChange(event.target.value)}
+          onBlur={onBlur}
           autoComplete={autoComplete}
           placeholder={placeholder}
           disabled={disabled}
