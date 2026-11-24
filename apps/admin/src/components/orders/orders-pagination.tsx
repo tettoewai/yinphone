@@ -7,11 +7,8 @@ import {
 } from "@workspace/ui/components/pagination"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
-import {
-  PAGE_SIZES,
-  pageWindow,
-  type PageSize,
-} from "@/lib/orders"
+import { PAGE_SIZES, type PageSize } from "@/lib/orders"
+import { pageWindow } from "@/lib/paging"
 
 type OrdersPaginationProps = {
   page: number

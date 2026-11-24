@@ -12,6 +12,7 @@ import { ForgotPasswordPage } from "@/pages/forgot-password-page"
 import { LoginPage } from "@/pages/login-page"
 import { OrderDetailsPage } from "@/pages/order-details-page"
 import { OrdersPage } from "@/pages/orders-page"
+import { ProductsPage } from "@/pages/products-page"
 import { ResetPasswordPage } from "@/pages/reset-password-page"
 
 export default function App() {
@@ -51,6 +52,7 @@ export default function App() {
         <Route path={ROUTES.dashboard} element={<DashboardPage />} />
         <Route path={ROUTES.orders} element={<OrdersPage />} />
         <Route path={ROUTES.orderDetail} element={<OrderDetailsPage />} />
+        <Route path={ROUTES.products} element={<ProductsPage />} />
       </Route>
       <Route path="/" element={<Navigate to={ROUTES.dashboard} replace />} />
       <Route path="*" element={<Navigate to={ROUTES.dashboard} replace />} />

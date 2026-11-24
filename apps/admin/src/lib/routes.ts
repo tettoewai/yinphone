@@ -7,6 +7,7 @@ export const ROUTES = {
   orders: "/orders",
   /** Pattern only — build concrete links with `orderDetailPath`. */
   orderDetail: "/orders/:code",
+  products: "/products",
   resetPassword: "/reset-password",
 } as const
 

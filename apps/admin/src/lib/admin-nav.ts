@@ -54,6 +54,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     label: "ထုတ်ကုန်များ",
     labelEn: "Products",
     icon: Shirt,
+    to: ROUTES.products,
   },
   {
     key: "categories",

@@ -8,7 +8,7 @@ import {
 } from "@workspace/ui/components/table"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { ProductThumb } from "@/components/order-details/product-thumb"
+import { ProductThumb } from "@/components/product-thumb"
 import { formatMmk } from "@/lib/format"
 import {
   orderItemCount,

@@ -12,8 +12,6 @@ import { StatusFilterPills } from "@/components/orders/status-filter-pills"
 import {
   DEFAULT_PAGE_SIZE,
   filterOrders,
-  paginate,
-  pageCountFor,
   statusCounts,
   type ChannelSlug,
   type DateRangeKey,
@@ -21,6 +19,7 @@ import {
   type PageSize,
 } from "@/lib/orders"
 import { ORDERS_GENERATED_AT, ORDERS_MOCK } from "@/lib/orders-mock"
+import { paginate, pageCountFor } from "@/lib/paging"
 
 /**
  * The orders list (`/orders`).
@@ -46,7 +45,8 @@ export function OrdersPage() {
   // `ORDERS_GENERATED_AT` is the instant the mock rows were stamped against, so
   // "Today" and "Last 7 days" agree with the data for the life of the session.
   const inScope = useMemo(
-    () => filterOrders(ORDERS_MOCK, { query, channel, range }, ORDERS_GENERATED_AT),
+    () =>
+      filterOrders(ORDERS_MOCK, { query, channel, range }, ORDERS_GENERATED_AT),
     [query, channel, range]
   )
 
