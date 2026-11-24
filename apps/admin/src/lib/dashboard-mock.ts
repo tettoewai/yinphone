@@ -6,11 +6,11 @@
  * endpoints land — nothing here is fetched yet.
  */
 
-/** Same values as the API's `OrderStatus` enum. */
-export type OrderStatus = "NEW" | "CONFIRMED" | "DELIVERED" | "CANCELLED"
+import type { ChannelSlug, OrderStatus } from "@/lib/orders"
 
-/** Channel slugs seeded in the API (`messenger`, `viber`, `telegram`). */
-export type ChannelSlug = "messenger" | "viber" | "telegram"
+// Re-exported so the dashboard keeps importing one module, while the orders
+// screen and the shared status badge read the same definitions.
+export type { ChannelSlug, OrderStatus }
 
 /** Public storefront. Placeholder until shop settings carry the real URL. */
 export const SHOP_URL = "http://localhost:3000"

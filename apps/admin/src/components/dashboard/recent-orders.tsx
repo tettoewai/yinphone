@@ -1,35 +1,13 @@
-import { Button } from "@workspace/ui/components/button"
+import { Button, buttonVariants } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import { ArrowRight, Check, Copy, Store } from "lucide-react"
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 
-import {
-  SHOP_URL,
-  type OrderStatus,
-  type RecentOrder,
-} from "@/lib/dashboard-mock"
+import { OrderStatusBadge } from "@/components/orders/order-status-badge"
+import { SHOP_URL, type RecentOrder } from "@/lib/dashboard-mock"
 import { formatMmk } from "@/lib/format"
-
-const STATUS_STYLE: Record<OrderStatus, string> = {
-  NEW: "bg-accent text-accent-foreground",
-  CONFIRMED: "bg-primary text-primary-foreground",
-  DELIVERED: "bg-success text-success-foreground",
-  CANCELLED: "bg-muted text-muted-foreground",
-}
-
-function StatusBadge({ status }: { status: OrderStatus }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-bold",
-        STATUS_STYLE[status]
-      )}
-    >
-      <span className="inline-block size-1.5 rounded-xl bg-current" />
-      {status}
-    </span>
-  )
-}
+import { ROUTES } from "@/lib/routes"
 
 const headCell =
   "py-2.5 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
@@ -47,15 +25,16 @@ export function RecentOrders({ orders }: { orders: readonly RecentOrder[] }) {
             Recent orders • {orders.length} latest • Asia/Yangon time
           </p>
         </div>
-        <Button
-          variant="ghost"
-          disabled
-          title="Coming soon"
-          className="min-h-11 gap-1.5 px-4 text-sm font-bold text-primary"
+        <Link
+          to={ROUTES.orders}
+          className={cn(
+            buttonVariants({ variant: "ghost" }),
+            "min-h-11 gap-1.5 px-4 text-sm font-bold text-primary"
+          )}
         >
           View all orders
           <ArrowRight className="size-[15px]" strokeWidth={3.2} />
-        </Button>
+        </Link>
       </div>
 
       {/* Narrow screens scroll the table instead of squeezing six columns. */}
@@ -118,7 +97,7 @@ export function RecentOrders({ orders }: { orders: readonly RecentOrder[] }) {
                   {order.channel}
                 </td>
                 <td className="px-3">
-                  <StatusBadge status={order.status} />
+                  <OrderStatusBadge status={order.status} />
                 </td>
                 <td className="pr-5 text-right text-xs text-muted-foreground">
                   {order.timeLabel}
