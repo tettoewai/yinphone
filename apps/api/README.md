@@ -135,10 +135,10 @@ Responds with `{ items, total, limit, offset }`.
 
 ## Admin API (`/api/admin`)
 
-Setup scaffolding for the dashboard: routes, guards and Zod validation are
-wired. The orders routes are implemented; the rest still respond `501 Not
-Implemented` until they land. All routes require a session (`AdminAuthGuard` +
-`RolesGuard`); rows marked OWNER additionally carry `@Roles('OWNER')`.
+The dashboard, channels and staff routes are still setup scaffolding and respond
+`501 Not Implemented`. Orders, products and categories are implemented. All
+routes require a session (`AdminAuthGuard` + `RolesGuard`); rows marked OWNER
+additionally carry `@Roles('OWNER')`.
 
 | Method   | Path                                 | Roles         |
 | -------- | ------------------------------------ | ------------- |
@@ -152,6 +152,7 @@ Implemented` until they land. All routes require a session (`AdminAuthGuard` +
 | `PATCH`  | `/api/admin/products/:id`            | STAFF + OWNER |
 | `PATCH`  | `/api/admin/products/:id/visibility` | STAFF + OWNER |
 | `POST`   | `/api/admin/products/:id/duplicate`  | STAFF + OWNER |
+| `DELETE` | `/api/admin/products/:id`            | STAFF + OWNER |
 | `GET`    | `/api/admin/categories`              | STAFF + OWNER |
 | `POST`   | `/api/admin/categories`              | STAFF + OWNER |
 | `PATCH`  | `/api/admin/categories/:id`          | STAFF + OWNER |
@@ -199,6 +200,53 @@ carries its `productId`, `slug`, `nameMy`, `nameEn`, `size`, `quantity`,
 Body `{ "status": "CONFIRMED" }`. Any status is accepted — staff correct data
 by hand too — and the response is the updated order detail. There is no status
 audit log yet.
+
+### `GET /api/admin/products`
+
+Responds with `{ items, total, limit, offset, counts }`. Each item is
+`id`, `slug`, `nameMy`, `nameEn`, `priceMmk`, `stock`, `isActive` and its
+`category` (`id`, `slug`, `nameMy`, `nameEn`). `counts` is `{ in, low, out }` —
+the stock breakdown measured over the search, category and SHOWING view but
+**before** the stock chip, so the chips do not collapse to the selected one.
+`low` means `1–4` (the screen's `< 5` threshold).
+
+| Query        | Type                                                    | Default   | Notes                                      |
+| ------------ | ------------------------------------------------------- | --------- | ------------------------------------------ |
+| `q`          | string                                                  | –         | Either name (`contains`, case-insensitive) |
+| `category`   | string                                                  | –         | Category slug                              |
+| `stock`      | `all` \| `in` \| `low` \| `out`                         | `all`     |                                            |
+| `visibility` | `active` \| `hidden` \| `all`                           | `all`     | Hidden rows are kept, not deleted          |
+| `sort`       | `default` \| `price-asc` \| `price-desc` \| `stock-asc` | `default` | `default` is newest first                  |
+| `limit`      | integer                                                 | `20`      | 1–100                                      |
+| `offset`     | integer                                                 | `0`       |                                            |
+
+### Products — writes
+
+- `POST /api/admin/products` — create. `slug` is derived from `nameEn` (then
+  `nameMy`) when omitted. A caller-supplied slug that is taken returns `409`.
+  An unknown `categoryId` returns `400`.
+- `GET /api/admin/products/:id` — the row plus `descriptionMy`,
+  `descriptionEn`, `sizes`, timestamps and ordered `images`. `404` if unknown.
+- `PATCH /api/admin/products/:id` — absent fields are left unchanged. Supplying
+  `images` replaces the whole list.
+- `PATCH /api/admin/products/:id/visibility` — body `{ "isActive": false }`;
+  hidden products stay on past orders.
+- `POST /api/admin/products/:id/duplicate` — copies the product and its images
+  as a hidden draft (`"(copy)"` name, `<slug>-copy` slug).
+- `DELETE /api/admin/products/:id` — `204`. Refused with `409` when the product
+  appears on any order; hide it instead.
+
+### Categories
+
+`GET /api/admin/categories` returns every category ordered by `sortOrder`, each
+with `id`, `slug`, `nameMy`, `nameEn`, `sortOrder` and `productCount` (all
+products, hidden included).
+
+- `POST /api/admin/categories` — `slug` derived from `nameEn` when omitted.
+- `PATCH /api/admin/categories/:id` — rename and/or `sortOrder`. Drag-reordering
+  the screen writes `sortOrder = index + 1` for every row that moved.
+- `DELETE /api/admin/categories/:id` (OWNER) — `204`. Refused with `409` while
+  the category still has products.
 
 ## Data model
 

@@ -1,17 +1,15 @@
 /**
- * Product-list types and the pure helpers behind `/products`.
+ * Presentation types and metadata behind `/products`.
  *
- * `ProductSummary` mirrors the API's Prisma `Product` row with its category
- * folded in (`apps/api/prisma/schema.prisma`), so `products-mock.ts` can be
- * swapped for a `GET /api/products` response without touching a component. Two
- * fields go beyond the current schema on purpose: `sku` is the short code the
- * shop quotes (`DR-014`) and `slug` is what the storefront link is built from.
- * Neither is invented at render time.
- *
- * Nothing here imports React — filtering, counting, sorting, duplicating and
- * paging are plain functions over arrays.
+ * The list itself now comes from `GET /api/admin/products`, which owns search,
+ * filtering, sorting and paging, so this module holds only what the screen needs
+ * to render: the row shape, the chip labels, the sort options and the undo
+ * banner's change record. Nothing here imports React.
  */
 
+import type { AdminProductSummary } from "@/lib/api"
+
+/** A category as the filter dropdown and the product form draw it. */
 export type ProductCategory = {
   slug: string
   nameMy: string
@@ -19,8 +17,8 @@ export type ProductCategory = {
 }
 
 /**
- * The shop's categories until `GET /api/categories` exists. The product form's
- * picker and the mock rows both read this list so the two cannot drift apart.
+ * The shop's categories for the product form. The list screen reads the real
+ * `GET /api/admin/categories`; this literal stays until the form is wired.
  */
 export const PRODUCT_CATEGORIES: readonly ProductCategory[] = [
   { slug: "dresses", nameMy: "ဂါဝန်", nameEn: "Dresses" },
@@ -29,20 +27,8 @@ export const PRODUCT_CATEGORIES: readonly ProductCategory[] = [
   { slug: "trousers", nameMy: "ဘောင်းဘီ", nameEn: "Trousers" },
 ]
 
-/** One row of the products table. A real endpoint returns this shape. */
-export type ProductSummary = {
-  id: string
-  slug: string
-  /** Short shop code, e.g. `DR-014`. */
-  sku: string
-  nameMy: string
-  nameEn: string
-  category: ProductCategory
-  priceMmk: number
-  stock: number
-  /** Cleared when the product is hidden from staff and shoppers. */
-  isActive: boolean
-}
+/** One row of the products table. `GET /api/admin/products` returns this shape. */
+export type ProductSummary = AdminProductSummary
 
 /** Stock below this reads as "Low" on the stock chips. */
 export const LOW_STOCK_THRESHOLD = 5
@@ -95,128 +81,9 @@ export function productSortLabel(sort: ProductSort) {
   )
 }
 
-/** Filter selections for the two facets that narrow the list before counting. */
-export type ProductFilters = {
-  query: string
-  /** Category slug, or `"all"`. */
-  category: string
-}
-
 /**
- * Matches the search box: either name, the SKU, or the category. Shoppers and
- * staff both quote the Latin name, so both names are searched.
- */
-export function matchesProductQuery(product: ProductSummary, query: string) {
-  const needle = query.trim().toLowerCase()
-  if (!needle) return true
-
-  return (
-    product.nameMy.toLowerCase().includes(needle) ||
-    product.nameEn.toLowerCase().includes(needle) ||
-    product.sku.toLowerCase().includes(needle) ||
-    product.category.nameMy.toLowerCase().includes(needle) ||
-    product.category.nameEn.toLowerCase().includes(needle)
-  )
-}
-
-/**
- * Applies search and category. The stock chips count against this result, so
- * their numbers do not collapse to the selected chip once one is chosen.
- */
-export function filterProducts(
-  products: readonly ProductSummary[],
-  filters: ProductFilters
-) {
-  return products.filter(
-    (product) =>
-      (filters.category === "all" ||
-        product.category.slug === filters.category) &&
-      matchesProductQuery(product, filters.query)
-  )
-}
-
-export function stockCounts(
-  products: readonly ProductSummary[]
-): Record<StockState, number> {
-  const counts: Record<StockState, number> = { in: 0, low: 0, out: 0 }
-
-  for (const product of products) {
-    counts[stockState(product.stock)] += 1
-  }
-
-  return counts
-}
-
-export function filterByStock(
-  products: readonly ProductSummary[],
-  stock: StockFilter
-) {
-  if (stock === "all") return products
-  return products.filter((product) => stockState(product.stock) === stock)
-}
-
-export function matchesVisibility(
-  product: ProductSummary,
-  visibility: VisibilityFilter
-) {
-  if (visibility === "all") return true
-  return visibility === "active" ? product.isActive : !product.isActive
-}
-
-export function sortProducts(
-  products: readonly ProductSummary[],
-  sort: ProductSort
-) {
-  if (sort === "default") return products
-
-  const rows = [...products]
-
-  switch (sort) {
-    case "price-asc":
-      return rows.sort((a, b) => a.priceMmk - b.priceMmk)
-    case "price-desc":
-      return rows.sort((a, b) => b.priceMmk - a.priceMmk)
-    case "stock-asc":
-      return rows.sort((a, b) => a.stock - b.stock)
-  }
-}
-
-/** The categories present in the list, ordered by their Latin name. */
-export function categoryOptions(
-  products: readonly ProductSummary[]
-): ProductCategory[] {
-  const bySlug = new Map<string, ProductCategory>()
-
-  for (const product of products) {
-    bySlug.set(product.category.slug, product.category)
-  }
-
-  return [...bySlug.values()].sort((a, b) => a.nameEn.localeCompare(b.nameEn))
-}
-
-/**
- * A hidden draft that mirrors `product`. Copies land inactive so a half-edited
- * product never reaches shoppers; `serial` only has to keep the ids unique for
- * the life of the page.
- */
-export function copyOfProduct(
-  product: ProductSummary,
-  serial: number
-): ProductSummary {
-  return {
-    ...product,
-    id: `${product.id}-copy-${serial}`,
-    slug: `${product.slug}-copy-${serial}`,
-    sku: `${product.sku}-C${serial}`,
-    nameMy: `${product.nameMy} (မိတ္တူ)`,
-    nameEn: `${product.nameEn} (copy)`,
-    isActive: false,
-  }
-}
-
-/**
- * The undoable change the banner reports. Mutations are local state until the
- * products API exists, so the banner is the only record of what just happened.
+ * The undoable change the banner reports. Hiding PATCHes the row back to active;
+ * duplicating DELETEs the copy it created.
  */
 export type ProductChange =
   | { kind: "hidden"; id: string; name: string }

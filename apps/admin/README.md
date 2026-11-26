@@ -36,7 +36,7 @@ src/App.tsx         Route table and the auth guards
 src/pages/          Sign-in, password reset, dashboard, orders, products, categories
 src/auth/           Session context, provider and route guards
 src/components/     Admin shell, dashboard panels, orders, products, categories, fields
-src/lib/            API client, order/product/category types and mocks, paging, formatters
+src/lib/            API client, order/product/category types, paging, formatters
 vite.config.ts      React, React Compiler, Tailwind, `@/` and the `/api` proxy
 ```
 
@@ -94,29 +94,28 @@ the `font-body` and `font-heading` utilities.
 (Geist). Without it the `font-body` stack ends in an undefined variable, and the
 whole `font-family` declaration is dropped at computed-value time.
 
-## Orders and products (front end only)
+## Orders, products and categories
 
-`/orders`, `/orders/:code` and `/products` render placeholder data from
-`src/lib/orders-mock.ts`, `order-details-mock.ts` and `products-mock.ts` — the
-endpoints behind them do not exist yet. Filtering, status counting and paging run
-in the browser (`src/lib/orders.ts`, `products.ts` and the shared `paging.ts`), so
-the screens respond instantly and drop onto a real response when those endpoints
-land. Order timestamps are relative to module load, which keeps the default
-"Last 7 days" filter populated instead of going stale after a week.
+`/orders`, `/orders/:code`, `/products` and `/categories` are wired to the admin
+API (`GET /api/admin/orders`, `GET /api/admin/products`,
+`GET /api/admin/categories`). Filtering, counting, sorting and paging run on the
+server; the screens keep the previous page on screen while a newer request is in
+flight (`src/hooks/use-orders.ts`, `use-products.ts`, `use-categories.ts`). The
+search box is debounced by 250 ms and every request is abortable.
 
-Writes are simulated: the detail screen's status changes and the products list's
-hide/duplicate keep their state in the component with a 10-second undo, and
-anything that would need a write endpoint (manual order, editing an existing
-product) is a disabled placeholder. `/products/new` is the add-product form: it
-validates a local draft, takes photos as object URLs and returns to the list on
-save, since there is no `POST /api/products` yet.
+Writes go straight to the API: order status changes (`PATCH .../status`), a
+product's hide/show toggle and visibility switch (`PATCH .../visibility`),
+duplicate (`POST .../duplicate`) and the Undo that hides the row again or
+deletes the copy. The products banner keeps its 10-second Undo window. Anything
+without an endpoint yet (manual order, editing an existing product,
+`/products/new`) is still a disabled placeholder — the add form validates a
+local draft only.
 
-`/categories` is the sort-order screen, and it is local in the same way: the six
-rows come from `src/lib/categories.ts`, and dragging a row, renaming a category,
-the storefront-visibility toggle and deleting an empty one all update the page's
-state — which is what the "Saved in this tab" chip reports. Delete stays
-disabled while a category still has products (they would be orphaned), and a new
-category derives its read-only slug from its English name.
+`/categories` creates, renames and deletes through the API; dragging a row
+writes the new `sortOrder` for every row that moved. Delete stays disabled while
+a category still has products and the API refuses it too. The “Saved” chip
+reports the time of the last successful write. The read-only slug is derived from
+the English name on create and never changes on rename.
 
 ## Shared UI
 

@@ -7,10 +7,11 @@ import { formatClockTime } from "@/lib/yangon-time"
 
 type CategorySortCardProps = {
   categories: readonly AdminCategory[]
-  /** Yangon time of the last change in this tab; `null` before the first one. */
+  /** Yangon time of the last successful save; `null` before the first one. */
   lastSavedAt: Date | null
+  /** True while a create, rename, reorder or delete is in flight. */
+  saving: boolean
   onReorder: (from: number, to: number) => void
-  onToggle: (category: AdminCategory, visible: boolean) => void
   onEdit: (category: AdminCategory) => void
   onDelete: (category: AdminCategory) => void
 }
@@ -26,8 +27,8 @@ type CategorySortCardProps = {
 export function CategorySortCard({
   categories,
   lastSavedAt,
+  saving,
   onReorder,
-  onToggle,
   onEdit,
   onDelete,
 }: CategorySortCardProps) {
@@ -46,16 +47,16 @@ export function CategorySortCard({
         </h2>
 
         <div className="flex items-center gap-1 text-xs font-bold">
-          {lastSavedAt ? (
+          {saving ? (
+            <span className="text-muted-foreground">Saving…</span>
+          ) : lastSavedAt ? (
             <>
               <Check className="size-[13px] text-primary" strokeWidth={3.7} />
               <span className="text-primary">
-                Saved in this tab • {formatClockTime(lastSavedAt)}
+                Saved • {formatClockTime(lastSavedAt)}
               </span>
             </>
           ) : (
-            // Nothing is written to a server yet, so the chip cannot claim a
-            // save before the first edit either.
             <span className="text-muted-foreground">Not saved yet</span>
           )}
         </div>
@@ -71,7 +72,6 @@ export function CategorySortCard({
             onDragStart={() => setDragIndex(index)}
             onDragEnd={() => setDragIndex(null)}
             onDropAt={() => dropAt(index)}
-            onToggle={onToggle}
             onEdit={onEdit}
             onDelete={onDelete}
           />

@@ -36,7 +36,7 @@ export function ProductsMobileList({
                 {product.nameMy}
               </div>
               <div className="truncate text-xs text-muted-foreground">
-                {product.nameEn} • {product.sku}
+                {product.nameEn}
               </div>
               <div className="mt-0.5 text-[11px] text-muted-foreground">
                 {product.category.nameMy} • {product.category.nameEn}

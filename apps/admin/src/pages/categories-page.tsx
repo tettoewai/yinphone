@@ -3,18 +3,18 @@ import { Plus } from "lucide-react"
 import { useState } from "react"
 
 import { AdminPageHeader } from "@/components/admin-page-header"
+import { FormAlert } from "@/components/form-alert"
 import { CategoryDialog } from "@/components/categories/category-dialog"
 import { CategoryEmptyState } from "@/components/categories/category-empty-state"
 import { CategorySortCard } from "@/components/categories/category-sort-card"
 import { DeleteCategoryDialog } from "@/components/categories/delete-category-dialog"
 import { StorefrontMenuCard } from "@/components/categories/storefront-menu-card"
+import { TableSkeleton } from "@/components/states/dashboard-skeleton"
+import { RequestError } from "@/components/states/request-error"
+import { useCategories } from "@/hooks/use-categories"
+import { ApiError, categoriesApi } from "@/lib/api"
 import {
-  CATEGORIES_MOCK,
-  applyCategoryDraft,
-  createCategory,
-  reorderCategories,
-  slugifyCategory,
-  uniqueSlug,
+  moveCategory,
   type AdminCategory,
   type CategoryDraft,
 } from "@/lib/categories"
@@ -25,67 +25,86 @@ type Editor = { mode: "add" } | { mode: "edit"; category: AdminCategory }
 /**
  * Categories (`/categories`).
  *
- * Local state only: there is no `GET/POST /api/categories` yet, so the rows come
- * from `CATEGORIES_MOCK` in `lib/categories.ts` and every change — reorder,
- * rename, toggle, delete — lives in this component. The header chip says
- * "Saved in this tab" rather than claiming a server write.
- *
- * The storefront preview beside the list reads the same array, so it cannot
- * disagree with what the rows say.
+ * Rows come from `GET /api/admin/categories`. Creating, renaming, reordering
+ * (drag) and deleting all write through the API and then refetch; the header
+ * chip reports the real save time rather than a local edit. Only empty
+ * categories may be deleted — the row disables Delete otherwise, and the API
+ * refuses the request even if the button were pressed.
  */
 export function CategoriesPage() {
-  const [categories, setCategories] = useState<AdminCategory[]>(() => [
-    ...CATEGORIES_MOCK,
-  ])
+  const {
+    categories: rows,
+    error,
+    loading,
+    refreshing,
+    reload,
+  } = useCategories()
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const [editor, setEditor] = useState<Editor | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AdminCategory | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
-  /** Every mutation is a local edit; this is what the header chip reports. */
-  function markSaved() {
-    setLastSavedAt(new Date())
-  }
+  const categories = rows ?? []
 
-  function toggleCategory(category: AdminCategory, visible: boolean) {
-    setCategories((current) =>
-      current.map((row) =>
-        row.id === category.id ? { ...row, isVisible: visible } : row
+  /** Runs a write, reports a failure, then refetches the list. */
+  async function run(action: () => Promise<unknown>) {
+    setSaving(true)
+    setActionError(null)
+
+    try {
+      await action()
+      setLastSavedAt(new Date())
+      return true
+    } catch (failure) {
+      setActionError(
+        failure instanceof ApiError
+          ? failure.message
+          : "Something went wrong. Please try again."
       )
-    )
-    markSaved()
+      return false
+    } finally {
+      setSaving(false)
+      reload()
+    }
   }
 
-  function saveCategory(draft: CategoryDraft) {
-    if (editor?.mode === "edit") {
-      const target = editor.category
-      setCategories((current) =>
-        current.map((row) =>
-          row.id === target.id ? applyCategoryDraft(row, draft) : row
+  async function saveCategory(draft: CategoryDraft) {
+    const saved =
+      editor?.mode === "edit"
+        ? await run(() => categoriesApi.update(editor.category.id, draft))
+        : await run(() => categoriesApi.create(draft))
+
+    if (saved) setEditor(null)
+  }
+
+  async function confirmDelete() {
+    const target = deleteTarget
+    if (!target) return
+
+    const removed = await run(() => categoriesApi.remove(target.id))
+    if (removed) setDeleteTarget(null)
+  }
+
+  /**
+   * Persists the new order by writing `sortOrder = index + 1` for every row
+   * whose position actually changed, then refetches.
+   */
+  async function reorder(from: number, to: number) {
+    const next = moveCategory(categories, from, to)
+    if (next === categories) return
+
+    const changed = next
+      .map((category, index) => ({ category, sortOrder: index + 1 }))
+      .filter(({ category, sortOrder }) => category.sortOrder !== sortOrder)
+
+    await run(() =>
+      Promise.all(
+        changed.map(({ category, sortOrder }) =>
+          categoriesApi.update(category.id, { sortOrder })
         )
       )
-    } else {
-      // A Burmese-only name slugs to "", which still needs a working link, so
-      // the fallback is "category" plus the first free numeric suffix.
-      const base = slugifyCategory(draft.nameEn) || "category"
-      const slug = uniqueSlug(
-        base,
-        categories.map((category) => category.slug)
-      )
-      setCategories((current) => [...current, createCategory(draft, slug)])
-    }
-
-    setEditor(null)
-    markSaved()
-  }
-
-  function confirmDelete() {
-    if (!deleteTarget) return
-
-    setCategories((current) =>
-      current.filter((category) => category.id !== deleteTarget.id)
     )
-    setDeleteTarget(null)
-    markSaved()
   }
 
   return (
@@ -105,31 +124,44 @@ export function CategoriesPage() {
       />
 
       <main className="flex flex-1 flex-col gap-4 px-4 py-5 sm:px-6">
-        <div className="grid items-start gap-4 lg:grid-cols-3">
-          <div className="flex flex-col gap-3 lg:col-span-2">
-            {categories.length === 0 ? (
-              <CategoryEmptyState />
-            ) : (
-              <CategorySortCard
-                categories={categories}
-                lastSavedAt={lastSavedAt}
-                onReorder={(from, to) => {
-                  setCategories((current) =>
-                    reorderCategories(current, from, to)
-                  )
-                  markSaved()
-                }}
-                onToggle={toggleCategory}
-                onEdit={(category) => setEditor({ mode: "edit", category })}
-                onDelete={setDeleteTarget}
-              />
-            )}
-          </div>
+        {actionError ? (
+          <FormAlert
+            title="မအောင်မြင်ပါ • Action failed"
+            detail={actionError}
+          />
+        ) : null}
 
-          <div className="flex flex-col gap-4">
-            <StorefrontMenuCard categories={categories} />
+        {error ? (
+          <RequestError
+            detail={error instanceof ApiError ? error.message : undefined}
+            onRetry={reload}
+          />
+        ) : loading ? (
+          <TableSkeleton rows={4} className="rounded-lg" />
+        ) : (
+          <div className="grid items-start gap-4 lg:grid-cols-3">
+            <div className="flex flex-col gap-3 lg:col-span-2">
+              {categories.length === 0 ? (
+                <CategoryEmptyState />
+              ) : (
+                <CategorySortCard
+                  categories={categories}
+                  lastSavedAt={lastSavedAt}
+                  saving={saving || refreshing}
+                  onReorder={(from, to) => {
+                    void reorder(from, to)
+                  }}
+                  onEdit={(category) => setEditor({ mode: "edit", category })}
+                  onDelete={setDeleteTarget}
+                />
+              )}
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <StorefrontMenuCard categories={categories} />
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       {editor ? (
@@ -139,7 +171,9 @@ export function CategoriesPage() {
           onOpenChange={(open) => {
             if (!open) setEditor(null)
           }}
-          onSave={saveCategory}
+          onSave={(draft) => {
+            void saveCategory(draft)
+          }}
         />
       ) : null}
 
@@ -148,7 +182,9 @@ export function CategoriesPage() {
         onOpenChange={(open) => {
           if (!open) setDeleteTarget(null)
         }}
-        onConfirm={confirmDelete}
+        onConfirm={() => {
+          void confirmDelete()
+        }}
       />
     </>
   )

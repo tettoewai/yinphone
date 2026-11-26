@@ -6,9 +6,9 @@ import { Link } from "react-router-dom"
 import { ROUTES } from "@/lib/routes"
 
 /**
- * What the list shows once the shop has no products at all. Unreachable while
- * the page runs on `PRODUCTS_MOCK`, but it is the first thing a new shop sees,
- * so it exists before the products API makes it reachable.
+ * What the list shows once the shop has no products at all. It is the first
+ * thing a new shop sees, so it exists even though the seeded shop is never
+ * empty.
  */
 export function ProductsEmpty() {
   return (

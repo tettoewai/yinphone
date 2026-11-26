@@ -82,7 +82,7 @@ export function ProductsTable({
                     {product.nameMy}
                   </div>
                   <div className="truncate text-xs text-muted-foreground">
-                    {product.nameEn} • {product.sku}
+                    {product.nameEn}
                   </div>
                 </div>
               </div>

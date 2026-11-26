@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -74,5 +77,12 @@ export class AdminProductsController {
   @Post(':id/duplicate')
   duplicate(@Param('id', { schema: adminIdSchema }) id: string) {
     return this.products.duplicate(id);
+  }
+
+  /** Refused when the product appears on an order — hide it instead. */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id', { schema: adminIdSchema }) id: string) {
+    return this.products.remove(id);
   }
 }

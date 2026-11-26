@@ -1,10 +1,11 @@
 import { buttonVariants } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import { Plus } from "lucide-react"
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 
 import { AdminPageHeader } from "@/components/admin-page-header"
+import { FormAlert } from "@/components/form-alert"
 import { HideProductDialog } from "@/components/products/hide-product-dialog"
 import { ProductFilters } from "@/components/products/product-filters"
 import { ProductsChangeBanner } from "@/components/products/products-change-banner"
@@ -15,44 +16,36 @@ import {
 import { ProductsMobileList } from "@/components/products/products-mobile-list"
 import { ProductsPagination } from "@/components/products/products-pagination"
 import { ProductsTable } from "@/components/products/products-table"
-import { paginate, pageCountFor } from "@/lib/paging"
+import { TableSkeleton } from "@/components/states/dashboard-skeleton"
+import { RequestError } from "@/components/states/request-error"
+import { useCategories } from "@/hooks/use-categories"
+import { useProductList } from "@/hooks/use-products"
+import { ApiError, productsApi } from "@/lib/api"
+import { pageCountFor } from "@/lib/paging"
 import {
   PRODUCTS_PAGE_SIZE,
   UNDO_SECONDS,
-  categoryOptions,
-  copyOfProduct,
-  filterByStock,
-  filterProducts,
-  matchesVisibility,
-  sortProducts,
-  stockCounts,
+  type ProductCategory,
   type ProductChange,
   type ProductSort,
   type ProductSummary,
   type StockFilter,
   type VisibilityFilter,
 } from "@/lib/products"
-import { PRODUCTS_MOCK } from "@/lib/products-mock"
 import { ROUTES } from "@/lib/routes"
+
+const EMPTY_COUNTS = { in: 0, low: 0, out: 0 }
 
 /**
  * The products list (`/products`).
  *
- * Every row comes from `products-mock.ts` — there is no `GET /api/products`
- * yet. Filtering, counting, sorting and paging happen in the browser for the
- * same reason: 24 rows fit in one response, and doing it here keeps the
- * interaction instant while the endpoint is designed. When it lands, replace
- * `PRODUCTS_MOCK` and turn the four mutators below into requests.
- *
- * Hiding and duplicating mutate local state and report through one banner with
- * a ten-second Undo. Filtering runs query and category first, then the stock
- * counts, then the stock chip, then the SHOWING view — so a chip's count always
- * describes what selecting it would show.
+ * Rows, counts, sorting and paging come from `GET /api/admin/products`; the
+ * search box is debounced in the hook and every other facet applies at once.
+ * Hiding updates the row in place, duplicating inserts a hidden draft, and both
+ * report through one banner with a ten-second Undo (a hide re-shows the row, a
+ * duplicate deletes the copy).
  */
 export function ProductsPage() {
-  const [products, setProducts] = useState<ProductSummary[]>(() => [
-    ...PRODUCTS_MOCK,
-  ])
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("all")
   const [stock, setStock] = useState<StockFilter>("all")
@@ -61,38 +54,50 @@ export function ProductsPage() {
   const [page, setPage] = useState(1)
   const [change, setChange] = useState<ProductChange | null>(null)
   const [hideTarget, setHideTarget] = useState<ProductSummary | null>(null)
-  const copies = useRef(0)
+  const [pending, setPending] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
-  const categories = useMemo(() => categoryOptions(products), [products])
+  const {
+    page: list,
+    error,
+    loading,
+    refreshing,
+    reload,
+  } = useProductList({
+    q: query,
+    category,
+    stock,
+    visibility,
+    sort,
+    page,
+    pageSize: PRODUCTS_PAGE_SIZE,
+  })
 
-  const inScope = useMemo(
-    () => filterProducts(products, { query, category }),
-    [products, query, category]
+  // The dropdown reads the real categories, so a new one shows up here at once.
+  const { categories } = useCategories()
+  const categoryOptions = useMemo<ProductCategory[]>(
+    () =>
+      (categories ?? []).map(({ slug, nameMy, nameEn }) => ({
+        slug,
+        nameMy,
+        nameEn,
+      })),
+    [categories]
   )
 
-  const counts = useMemo(() => stockCounts(inScope), [inScope])
+  const counts = list?.counts ?? EMPTY_COUNTS
+  const pageTotal = list?.total ?? 0
+  const scopeTotal = counts.in + counts.low + counts.out
+  const pageCount = pageCountFor(pageTotal, PRODUCTS_PAGE_SIZE)
+  const rows = list?.items ?? []
+  const busy = pending || refreshing
 
-  const visible = useMemo(() => {
-    const byStock = filterByStock(inScope, stock)
-    // A product hidden a moment ago stays on screen for the undo window, even
-    // when SHOWING is "Active" — otherwise the row disappears from under the
-    // pointer and the banner's Undo has nothing to restore in place.
-    const pinnedId = change?.kind === "hidden" ? change.id : null
-
-    return sortProducts(
-      byStock.filter(
-        (product) =>
-          product.id === pinnedId || matchesVisibility(product, visibility)
-      ),
-      sort
-    )
-  }, [inScope, stock, visibility, sort, change])
-
-  const pageCount = pageCountFor(visible.length, PRODUCTS_PAGE_SIZE)
-  // A change can leave the page pointer past the end; clamping keeps the footer
-  // and the rows in agreement without a state-syncing effect.
-  const currentPage = Math.min(page, pageCount)
-  const rows = paginate(visible, currentPage, PRODUCTS_PAGE_SIZE)
+  const hasFilters =
+    query.trim() !== "" ||
+    category !== "all" ||
+    stock !== "all" ||
+    visibility !== "active" ||
+    sort !== "default"
 
   function changeQuery(value: string) {
     setQuery(value)
@@ -128,23 +133,45 @@ export function ProductsPage() {
     setPage(1)
   }
 
-  function hideProduct(product: ProductSummary) {
-    setProducts((current) =>
-      current.map((row) =>
-        row.id === product.id ? { ...row, isActive: false } : row
+  /** Stay inside the pages the current result actually has. */
+  function changePage(value: number) {
+    setPage(Math.min(Math.max(1, value), pageCount))
+  }
+
+  /** Runs a write, reports a failure, then refetches whatever the list is. */
+  async function mutate(
+    action: () => Promise<unknown>,
+    onSuccess?: () => void
+  ) {
+    setPending(true)
+    setActionError(null)
+
+    try {
+      await action()
+      onSuccess?.()
+    } catch (failure) {
+      setActionError(
+        failure instanceof ApiError
+          ? failure.message
+          : "Something went wrong. Please try again."
       )
+    } finally {
+      setPending(false)
+      reload()
+    }
+  }
+
+  function hideProduct(product: ProductSummary) {
+    void mutate(
+      () => productsApi.setVisibility(product.id, false),
+      () => setChange({ kind: "hidden", id: product.id, name: product.nameMy })
     )
-    setChange({ kind: "hidden", id: product.id, name: product.nameMy })
   }
 
   function showProduct(product: ProductSummary) {
-    setProducts((current) =>
-      current.map((row) =>
-        row.id === product.id ? { ...row, isActive: true } : row
-      )
-    )
     // Turning the product back on makes the banner's Undo a no-op, so drop it.
     setChange((current) => (current?.id === product.id ? null : current))
+    void mutate(() => productsApi.setVisibility(product.id, true))
   }
 
   function toggleProduct(product: ProductSummary, active: boolean) {
@@ -156,18 +183,10 @@ export function ProductsPage() {
   }
 
   function duplicateProduct(product: ProductSummary) {
-    copies.current += 1
-    const copy = copyOfProduct(product, copies.current)
-
-    // Right after the original, so switching SHOWING to "All" or "Hidden" finds
-    // the draft where its source is instead of at the bottom of the list.
-    setProducts((current) => {
-      const index = current.findIndex((row) => row.id === product.id)
-      if (index === -1) return [copy, ...current]
-
-      return [...current.slice(0, index + 1), copy, ...current.slice(index + 1)]
+    void mutate(async () => {
+      const copy = await productsApi.duplicate(product.id)
+      setChange({ kind: "duplicated", id: copy.id, name: product.nameMy })
     })
-    setChange({ kind: "duplicated", id: copy.id, name: product.nameMy })
   }
 
   function confirmHide(product: ProductSummary) {
@@ -176,19 +195,15 @@ export function ProductsPage() {
   }
 
   function undoChange() {
-    if (!change) return
-
-    if (change.kind === "hidden") {
-      setProducts((current) =>
-        current.map((row) =>
-          row.id === change.id ? { ...row, isActive: true } : row
-        )
-      )
-    } else {
-      setProducts((current) => current.filter((row) => row.id !== change.id))
-    }
+    const current = change
+    if (!current) return
 
     setChange(null)
+    void mutate(() =>
+      current.kind === "hidden"
+        ? productsApi.setVisibility(current.id, true)
+        : productsApi.remove(current.id)
+    )
   }
 
   const rowActions = {
@@ -201,7 +216,7 @@ export function ProductsPage() {
     <>
       <AdminPageHeader
         title="ထုတ်ကုန်များ"
-        subtitle={`Products • ${products.length} items • Asia/Yangon`}
+        subtitle={`Products • ${pageTotal} items • Asia/Yangon`}
         actions={
           <Link
             to={ROUTES.productNew}
@@ -217,6 +232,13 @@ export function ProductsPage() {
       />
 
       <main className="flex flex-1 flex-col gap-4 px-4 py-5 sm:px-6">
+        {actionError ? (
+          <FormAlert
+            title="မအောင်မြင်ပါ • Action failed"
+            detail={actionError}
+          />
+        ) : null}
+
         {change ? (
           <ProductsChangeBanner
             key={`${change.kind}-${change.id}`}
@@ -230,7 +252,7 @@ export function ProductsPage() {
         <ProductFilters
           query={query}
           onQueryChange={changeQuery}
-          categories={categories}
+          categories={categoryOptions}
           category={category}
           onCategoryChange={changeCategory}
           sort={sort}
@@ -238,17 +260,32 @@ export function ProductsPage() {
           stock={stock}
           onStockChange={changeStock}
           counts={counts}
-          total={inScope.length}
+          total={scopeTotal}
           visibility={visibility}
           onVisibilityChange={changeVisibility}
         />
 
-        {products.length === 0 ? (
-          <ProductsEmpty />
-        ) : visible.length === 0 ? (
-          <ProductsListEmpty onClear={clearFilters} />
+        {error ? (
+          <RequestError
+            detail={error instanceof ApiError ? error.message : undefined}
+            onRetry={reload}
+          />
+        ) : loading ? (
+          <TableSkeleton rows={PRODUCTS_PAGE_SIZE} className="rounded-lg" />
+        ) : rows.length === 0 ? (
+          hasFilters ? (
+            <ProductsListEmpty onClear={clearFilters} />
+          ) : (
+            <ProductsEmpty />
+          )
         ) : (
-          <section className="overflow-hidden rounded-lg border border-border bg-card">
+          <section
+            aria-busy={busy}
+            className={cn(
+              "overflow-hidden rounded-lg border border-border bg-card transition-opacity",
+              busy && "opacity-60"
+            )}
+          >
             <div className="hidden md:block">
               <ProductsTable products={rows} {...rowActions} />
             </div>
@@ -256,11 +293,11 @@ export function ProductsPage() {
               <ProductsMobileList products={rows} {...rowActions} />
             </div>
             <ProductsPagination
-              page={currentPage}
+              page={page}
               pageSize={PRODUCTS_PAGE_SIZE}
-              total={visible.length}
+              total={pageTotal}
               pageCount={pageCount}
-              onPageChange={setPage}
+              onPageChange={changePage}
             />
           </section>
         )}

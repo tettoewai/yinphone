@@ -87,7 +87,7 @@ export function ProductFilters({
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="Search name • ဂါဝန် / Dress…"
-            aria-label="Search products by name, SKU or category"
+            aria-label="Search products by name or category"
             className="h-12 rounded-md border-border bg-background pr-3 pl-10 text-sm dark:bg-background"
           />
         </div>

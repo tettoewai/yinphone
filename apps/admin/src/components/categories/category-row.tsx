@@ -1,5 +1,4 @@
 import { Button } from "@workspace/ui/components/button"
-import { Switch } from "@workspace/ui/components/switch"
 import { cn } from "@workspace/ui/lib/utils"
 import { GripVertical, Pencil, Trash2 } from "lucide-react"
 
@@ -18,19 +17,18 @@ type CategoryRowProps = {
   onDragStart: () => void
   onDragEnd: () => void
   onDropAt: () => void
-  onToggle: (category: AdminCategory, visible: boolean) => void
   onEdit: (category: AdminCategory) => void
   onDelete: (category: AdminCategory) => void
 }
 
 /**
- * One row of the sort-order list: handle, names, product count, the storefront
- * toggle and the row's two actions.
+ * One row of the sort-order list: handle, names, product count and the row's
+ * two actions.
  *
- * Only the handle is a drag source, so dragging never competes with the switch
- * or with selecting the name. Delete stays in the markup while it is blocked —
- * disabled and faded with the reason in its tooltip — because a control that
- * vanishes as the product count changes is harder to reason about.
+ * Only the handle is a drag source, so dragging never competes with selecting
+ * the name. Delete stays in the markup while it is blocked — disabled and faded
+ * with the reason in its tooltip — because a control that vanishes as the
+ * product count changes is harder to reason about.
  */
 export function CategoryRow({
   category,
@@ -39,7 +37,6 @@ export function CategoryRow({
   onDragStart,
   onDragEnd,
   onDropAt,
-  onToggle,
   onEdit,
   onDelete,
 }: CategoryRowProps) {
@@ -89,13 +86,6 @@ export function CategoryRow({
       >
         {categoryCountLabel(category)}
       </span>
-
-      <Switch
-        checked={category.isVisible}
-        onCheckedChange={(visible) => onToggle(category, visible)}
-        aria-label={`${category.nameEn} in the storefront menu`}
-        className="h-[30px] w-[52px] shrink-0 rounded-xl border-0 p-1 [--switch-thumb-size:22px] [--switch-thumb-travel:22px]"
-      />
 
       {/* Below `sm` the two actions take the next line, so the names keep the
           width they need instead of being squeezed to a few characters. */}

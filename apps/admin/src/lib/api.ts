@@ -285,3 +285,176 @@ export const ordersApi = {
     )
   },
 }
+
+export type AdminProductSize = "S" | "M" | "L" | "XL"
+
+/** Category as it appears on a product row. */
+export type AdminProductCategory = {
+  id: string
+  slug: string
+  nameMy: string
+  nameEn: string
+}
+
+/** One row of `GET /api/admin/products`; the list screen's `ProductSummary`. */
+export type AdminProductSummary = {
+  id: string
+  slug: string
+  nameMy: string
+  nameEn: string
+  priceMmk: number
+  stock: number
+  isActive: boolean
+  category: AdminProductCategory
+}
+
+export type AdminProductImage = {
+  id: string
+  url: string
+  altText: string | null
+  sortOrder: number
+}
+
+export type AdminProductDetail = AdminProductSummary & {
+  descriptionMy: string | null
+  descriptionEn: string | null
+  sizes: AdminProductSize[]
+  createdAt: string
+  updatedAt: string
+  images: AdminProductImage[]
+}
+
+export type AdminProductStockFilter = "all" | "in" | "low" | "out"
+
+export type AdminProductVisibilityFilter = "active" | "hidden" | "all"
+
+export type AdminProductSort =
+  "default" | "price-asc" | "price-desc" | "stock-asc"
+
+export type AdminProductListQuery = {
+  q?: string
+  /** Category slug. */
+  category?: string
+  stock?: AdminProductStockFilter
+  visibility?: AdminProductVisibilityFilter
+  sort?: AdminProductSort
+  limit?: number
+  offset?: number
+}
+
+export type AdminProductPage = {
+  items: AdminProductSummary[]
+  total: number
+  limit: number
+  offset: number
+  /** Stock breakdown over the search, category and SHOWING view. */
+  counts: { in: number; low: number; out: number }
+}
+
+/** The category row the admin list renders, with its product count. */
+export type AdminCategory = {
+  id: string
+  slug: string
+  nameMy: string
+  nameEn: string
+  sortOrder: number
+  productCount: number
+}
+
+export type CreateProductBody = {
+  nameMy: string
+  nameEn: string
+  descriptionMy?: string
+  descriptionEn?: string
+  slug?: string
+  priceMmk: number
+  stock?: number
+  sizes?: AdminProductSize[]
+  categoryId: string
+  isActive?: boolean
+  images?: { url: string; altText?: string; sortOrder?: number }[]
+}
+
+export type UpdateProductBody = Partial<CreateProductBody>
+
+export type CategoryBody = {
+  nameMy?: string
+  nameEn?: string
+  slug?: string
+  sortOrder?: number
+}
+
+export const productsApi = {
+  list(query: AdminProductListQuery = {}, signal?: AbortSignal) {
+    return request<AdminProductPage>(`/admin/products${toQueryString(query)}`, {
+      signal,
+    })
+  },
+
+  get(id: string, signal?: AbortSignal) {
+    return request<AdminProductDetail>(
+      `/admin/products/${encodeURIComponent(id)}`,
+      { signal }
+    )
+  },
+
+  create(body: CreateProductBody) {
+    return request<AdminProductDetail>("/admin/products", {
+      method: "POST",
+      body,
+    })
+  },
+
+  update(id: string, body: UpdateProductBody) {
+    return request<AdminProductDetail>(
+      `/admin/products/${encodeURIComponent(id)}`,
+      { method: "PATCH", body }
+    )
+  },
+
+  setVisibility(id: string, isActive: boolean) {
+    return request<AdminProductDetail>(
+      `/admin/products/${encodeURIComponent(id)}/visibility`,
+      { method: "PATCH", body: { isActive } }
+    )
+  },
+
+  duplicate(id: string) {
+    return request<AdminProductDetail>(
+      `/admin/products/${encodeURIComponent(id)}/duplicate`,
+      { method: "POST" }
+    )
+  },
+
+  remove(id: string) {
+    return request<null>(`/admin/products/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    })
+  },
+}
+
+export const categoriesApi = {
+  list(signal?: AbortSignal) {
+    return request<AdminCategory[]>("/admin/categories", { signal })
+  },
+
+  create(body: CategoryBody & { nameMy: string; nameEn: string }) {
+    return request<AdminCategory>("/admin/categories", {
+      method: "POST",
+      body,
+    })
+  },
+
+  update(id: string, body: CategoryBody) {
+    return request<AdminCategory>(
+      `/admin/categories/${encodeURIComponent(id)}`,
+      { method: "PATCH", body }
+    )
+  },
+
+  remove(id: string) {
+    return request<null>(`/admin/categories/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    })
+  },
+}
