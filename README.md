@@ -93,6 +93,11 @@ the orders list and detail screens, and the products list — all still on
 placeholder data while the stats and admin endpoints they need are built. The
 design mocks live in `apps/admin/design/`.
 
+The admin endpoints are scaffolded under `/api/admin/*` (dashboard, orders,
+products, categories, channels, staff) with the session and role guards in
+place; handlers return `501` until implemented. See
+[`apps/api/README.md`](apps/api/README.md) for the route and role table.
+
 ## Environment variables
 
 `.env*` files are gitignored; `.env.example` is committed. Variables that

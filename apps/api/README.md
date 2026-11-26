@@ -93,9 +93,9 @@ POST /api/auth/login
 - `sameSite=lax` is the CSRF control: a cross-site POST never carries the
   cookie. In development the admin app proxies `/api` to this API, so requests
   are same-origin and no `credentials: "include"` is needed.
-- Admin routes not yet built (orders, products, dashboard) should use
-  `AdminAuthGuard`, plus `RolesGuard` with `@Roles('OWNER')` for anything
-  owner-only. Both are exported by `AuthModule`.
+- Admin routes live under `/api/admin` (see [Admin API](#admin-api-apiadmin))
+  and use `AdminAuthGuard` plus `RolesGuard`, with `@Roles('OWNER')` on
+  owner-only routes. Both guards are exported by `AuthModule`.
 
 ### `GET /api/products`
 
@@ -132,6 +132,42 @@ Responds with `{ items, total, limit, offset }`.
 - Order codes are `YP-<year>-<0001>`. A collision on the unique `code` column is
   retried (up to 5 attempts) before responding `409`.
 - Stock is **not** decremented; orders are confirmed over chat.
+
+## Admin API (`/api/admin`)
+
+Setup scaffolding for the dashboard: routes, guards and Zod validation are
+wired, and every handler responds `501 Not Implemented` until the
+implementation phase. All routes require a session (`AdminAuthGuard` +
+`RolesGuard`); rows marked OWNER additionally carry `@Roles('OWNER')`.
+
+| Method   | Path                                 | Roles         |
+| -------- | ------------------------------------ | ------------- |
+| `GET`    | `/api/admin/dashboard`               | STAFF + OWNER |
+| `GET`    | `/api/admin/orders`                  | STAFF + OWNER |
+| `GET`    | `/api/admin/orders/:code`            | STAFF + OWNER |
+| `PATCH`  | `/api/admin/orders/:code/status`     | STAFF + OWNER |
+| `GET`    | `/api/admin/products`                | STAFF + OWNER |
+| `POST`   | `/api/admin/products`                | STAFF + OWNER |
+| `GET`    | `/api/admin/products/:id`            | STAFF + OWNER |
+| `PATCH`  | `/api/admin/products/:id`            | STAFF + OWNER |
+| `PATCH`  | `/api/admin/products/:id/visibility` | STAFF + OWNER |
+| `POST`   | `/api/admin/products/:id/duplicate`  | STAFF + OWNER |
+| `GET`    | `/api/admin/categories`              | STAFF + OWNER |
+| `POST`   | `/api/admin/categories`              | STAFF + OWNER |
+| `PATCH`  | `/api/admin/categories/:id`          | STAFF + OWNER |
+| `DELETE` | `/api/admin/categories/:id`          | OWNER         |
+| `GET`    | `/api/admin/channels`                | STAFF + OWNER |
+| `POST`   | `/api/admin/channels`                | OWNER         |
+| `PATCH`  | `/api/admin/channels/:id`            | OWNER         |
+| `GET`    | `/api/admin/staff`                   | OWNER         |
+| `POST`   | `/api/admin/staff`                   | OWNER         |
+| `PATCH`  | `/api/admin/staff/:id`               | OWNER         |
+| `DELETE` | `/api/admin/staff/:id`               | OWNER         |
+
+Anonymous requests get `401 NOT_SIGNED_IN`; a signed-in admin without the
+required role gets `403 FORBIDDEN`. The guard wiring is covered by
+`src/admin/admin-guards.spec.ts` (boots the app with a mocked database) and by
+the e2e suite against a real one.
 
 ## Data model
 
