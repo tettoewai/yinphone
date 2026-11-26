@@ -2,6 +2,7 @@ import type { AdminUser } from "@/lib/api"
 
 export const ROUTES = {
   categories: "/categories",
+  channels: "/channels",
   dashboard: "/dashboard",
   forgotPassword: "/forgot-password",
   login: "/login",

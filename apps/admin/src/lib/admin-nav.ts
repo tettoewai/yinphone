@@ -68,6 +68,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     label: "ချန်နယ်များ",
     labelEn: "Channels",
     icon: MessageCircle,
+    to: ROUTES.channels,
   },
   {
     key: "settings",

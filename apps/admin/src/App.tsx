@@ -8,6 +8,7 @@ import {
 import { AdminLayout } from "@/components/admin-layout"
 import { ROUTES } from "@/lib/routes"
 import { CategoriesPage } from "@/pages/categories-page"
+import { ChannelsPage } from "@/pages/channels-page"
 import { DashboardPage } from "@/pages/dashboard-page"
 import { ForgotPasswordPage } from "@/pages/forgot-password-page"
 import { LoginPage } from "@/pages/login-page"
@@ -57,6 +58,7 @@ export default function App() {
         <Route path={ROUTES.products} element={<ProductsPage />} />
         <Route path={ROUTES.productNew} element={<ProductFormPage />} />
         <Route path={ROUTES.categories} element={<CategoriesPage />} />
+        <Route path={ROUTES.channels} element={<ChannelsPage />} />
       </Route>
       <Route path="/" element={<Navigate to={ROUTES.dashboard} replace />} />
       <Route path="*" element={<Navigate to={ROUTES.dashboard} replace />} />
