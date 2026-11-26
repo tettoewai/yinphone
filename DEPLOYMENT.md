@@ -4,11 +4,11 @@ This repo deploys as **three Vercel Projects**, all imported from the same Git
 repository. Each project sets a different **Root Directory**, so Vercel builds
 and deploys one app per project:
 
-| Project    | Root Directory | Framework preset | Build Command           | Output              |
-| ---------- | -------------- | ---------------- | ----------------------- | ------------------- |
-| storefront | `apps/web`     | Next.js          | `pnpm exec turbo build` | `.next` (preset)    |
-| admin      | `apps/admin`   | Vite             | `pnpm exec turbo build` | `dist`              |
-| api        | `apps/api`     | NestJS           | `pnpm db:generate`      | N/A (serverless fn) |
+| Project    | Vercel project   | Root Directory | Framework preset | Build Command           | Output Directory |
+| ---------- | ---------------- | -------------- | ---------------- | ----------------------- | ---------------- |
+| storefront | `yinphone-web`   | `apps/web`     | Next.js          | `pnpm exec turbo build` | Next.js default  |
+| admin      | `yinphone-admin` | `apps/admin`   | Vite             | `pnpm exec turbo build` | `dist`           |
+| api        | `yinphone-api`   | `apps/api`     | NestJS           | `pnpm exec turbo build` | `dist`           |
 
 The three `vercel.json` files in those directories already carry these settings;
 the dashboard fields exist so you can change them per project.
@@ -18,6 +18,20 @@ version pinned in the root `package.json`, and `turbo` infers the package filter
 from the working directory (the Root Directory), so only the app in that project
 is built — plus any workspace dependency with a `build` task.
 
+### What is deployed right now
+
+| App        | URL                               |
+| ---------- | --------------------------------- |
+| storefront | https://yinphone-web.vercel.app   |
+| admin      | https://yinphone-admin.vercel.app |
+| api        | https://yinphone-api.vercel.app   |
+
+Those `*.vercel.app` URLs are the current production aliases. The admin reaches
+the API through a same-origin `/api` rewrite (see [Admin](#3-admin-appsadmin)),
+so sign-in works without a custom domain. Adding a domain later is a matter of
+assigning it and updating two environment variables — see
+[Domains, cookies and CORS](#domains-cookies-and-cors).
+
 ## Before you start
 
 1. A PostgreSQL database reachable from Vercel, with a **pooled** connection
@@ -25,8 +39,9 @@ is built — plus any workspace dependency with a `build` task.
    Serverless functions open a connection per instance, so a direct-to-database
    URL will exhaust connections under load.
 2. The repo pushed to GitHub (already `origin`).
-3. Node.js 20.9+ (Vercel defaults to 22.x, which is fine). pnpm is read from
-   `packageManager` in the root `package.json`.
+3. Node.js 20.9+. Vercel currently defaults new projects to 26.x, which matches
+   local development here. pnpm is read from `packageManager` in the root
+   `package.json`.
 
 Deploy in this order: **API → web → admin**, because both clients need the API
 URL, and the API needs to be reachable with a database before the storefront can
@@ -34,35 +49,76 @@ render (its catalog pages are `force-dynamic` and fetch on every request).
 
 ## 1. API (`apps/api`)
 
-Vercel ships a NestJS framework preset (`@vercel/nestjs`). It bundles
-`src/main.ts` — including Nest's decorator metadata and the `@/…` path aliases —
-and exposes the Nest app as a Node.js function. Nothing extra is needed in the
-code.
+| Setting          | Value                   |
+| ---------------- | ----------------------- |
+| Root Directory   | `apps/api`              |
+| Framework Preset | NestJS (auto-detected)  |
+| Build Command    | `pnpm exec turbo build` |
+| Output Directory | `dist`                  |
+| Install Command  | auto (`pnpm install`)   |
 
-**Dashboard → Add New Project → import the repo**
+### Why the app is built to `dist` instead of letting the preset trace source
 
-| Setting          | Value                  |
-| ---------------- | ---------------------- |
-| Root Directory   | `apps/api`             |
-| Framework Preset | NestJS (auto-detected) |
-| Build Command    | `pnpm db:generate`     |
-| Output Directory | _leave empty_          |
-| Install Command  | auto (`pnpm install`)  |
+Vercel ships a NestJS preset (`@vercel/nestjs`) that finds `src/main.ts` and
+transpiles the files it imports in place. It does **not** apply `tsconfig`
+`paths`, and this app imports everything through `@/…`, so the emitted function
+dies on boot with:
 
-`pnpm db:generate` matters because the Prisma client is generated into
-`src/generated/prisma` and is gitignored. The bundled build reads that source,
-so the client must exist before Vercel bundles the function.
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@/prisma' imported from
+/var/task/apps/api/src/prisma/prisma.module.js
+```
+
+So the project builds the app itself. `pnpm exec turbo build` runs the `api`
+package's build script, `nest build && tsc-alias -p tsconfig.build.json`, which
+compiles to `dist/` and rewrites the `@/…` aliases into relative imports. The
+preset then serves `dist/main.js`. Keep `"outputDirectory": "dist"` in
+`apps/api/vercel.json` — drop it and the preset goes back to the broken source
+build.
+
+The Prisma client is generated into `src/generated/prisma` and is gitignored, so
+it has to exist before `nest build` compiles it. The `api` package's
+`postinstall` (`prisma generate`) runs during Vercel's install step and covers
+that; `pnpm db:generate` from the repo root does the same thing locally.
+
+### `main.ts` and Vercel's server capture
+
+Vercel's Node runtime patches `http.Server#listen` while importing the
+entrypoint, captures the first server that calls it, and then starts that server
+on a private port itself. `app.listen()` resolves only once the server emits
+`listening` — which never happens for a captured server — so a top-level
+`await app.listen(...)` hangs until the function times out. On Hobby that
+timeout is 60s and the invocation fails as `INTERNAL_FUNCTION_INVOCATION_FAILED`
+with **no runtime logs at all**, which makes this one hard to spot.
+
+`apps/api/src/main.ts` therefore branches on `process.env.VERCEL`:
+
+```ts
+await app.init()
+createServer(app.getHttpAdapter().getInstance()).listen(port)
+```
+
+Two details matter:
+
+- `app.getHttpServer()` is **not** usable here: Nest fills it in inside
+  `listen()`, so before that it is `undefined` and you would create a server
+  with no request listener (accepts connections, never answers).
+- The `listen()` call must not be awaited. The captured server is started by the
+  runtime afterwards.
+
+Locally (`pnpm dev`, `node dist/main.js`) the normal `await app.listen(port)`
+branch runs, so behaviour is unchanged.
 
 **Environment variables**
 
 | Variable                                                                                 | Required | Notes                                                                                                                                    |
 | ---------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                                                           | yes      | Pooled PostgreSQL URL. Used at runtime and by `prisma generate`.                                                                         |
-| `CORS_ORIGINS`                                                                           | yes      | Comma-separated browser origins, e.g. `https://admin.yinphone.shop,https://yinphone.shop`                                                |
+| `DATABASE_URL`                                                                           | yes      | Postgres URL. Used at runtime and by `prisma generate`.                                                                                  |
+| `CORS_ORIGINS`                                                                           | yes      | Comma-separated browser origins, e.g. `https://yinphone-web.vercel.app`                                                                  |
 | `COOKIE_SECURE`                                                                          | no       | Defaults to on because Vercel runs in production mode                                                                                    |
 | `COOKIE_DOMAIN`                                                                          | no       | Only if you want the session cookie shared across subdomains, e.g. `.yinphone.shop`. Leave unset for the normal `api.` + `admin.` setup. |
 | `SESSION_TTL_HOURS`, `SESSION_REMEMBER_DAYS`, `LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_MINUTES` | no       | Defaults are in `apps/api/README.md`                                                                                                     |
-| `PORT`                                                                                   | no       | Vercel manages the port; leave unset                                                                                                     |
+| `PORT`                                                                                   | no       | Leave unset; on Vercel the port is irrelevant because the runtime chooses it                                                             |
 
 Set these for **Production and Preview** unless you keep a separate database.
 
@@ -88,8 +144,15 @@ SEED_ADMIN_PASSWORD="<strong password>" pnpm --filter api exec prisma db seed
 Then verify:
 
 ```bash
-curl https://<api-domain>/api/health   # {"status":"ok"...} with a DB ping
+curl https://<api-domain>/api/health   # {"status":"ok","db":"up"}
 ```
+
+Turborepo prints a warning during the build that `DATABASE_URL` and
+`CORS_ORIGINS` are set on the project but missing from `turbo.json`. That is
+expected and harmless: both are read at request time by the function, never
+during the build, and declaring them would only make cache keys churn. (If a
+variable ever _is_ read at build time, declare it — see
+[Adding new environment variables later](#adding-new-environment-variables-later).)
 
 ### API on serverless — what changes
 
@@ -130,8 +193,6 @@ so Turborepo will not reuse a cache entry built with different values.
 
 ## 3. Admin (`apps/admin`)
 
-**Dashboard → Add New Project → same repo**
-
 | Setting          | Value                   |
 | ---------------- | ----------------------- |
 | Root Directory   | `apps/admin`            |
@@ -139,17 +200,43 @@ so Turborepo will not reuse a cache entry built with different values.
 | Build Command    | `pnpm exec turbo build` |
 | Output Directory | `dist`                  |
 
-`apps/admin/vercel.json` adds an SPA rewrite (`/(.*)` → `/index.html`), which the
-`react-router-dom` routes need. Vercel checks the filesystem first, so real
-assets are still served normally.
+`apps/admin/vercel.json` contains two rewrites, in this order:
+
+```json
+[
+  {
+    "source": "/api/:path*",
+    "destination": "https://yinphone-api.vercel.app/api/:path*"
+  },
+  { "source": "/(.*)", "destination": "/index.html" }
+]
+```
+
+The first proxies API calls through the admin's own origin. `apps/admin/src/lib/api.ts`
+already defaults to `""` (i.e. relative `/api/…`) when `VITE_API_URL` is unset,
+and `apps/admin/vite.config.ts` proxies `/api` the same way in dev and preview.
+This is what makes sign-in work on `*.vercel.app`: the browser sees one origin,
+so the host-only `yp_session` cookie is first-party and `SameSite=Lax` is
+satisfied. CORS stops mattering for the admin.
+
+The second rewrite is the SPA fallback `react-router-dom` needs. Vercel checks
+the filesystem before applying rewrites, so real assets are served normally, and
+`/api/…` is matched by the first rule.
 
 **Environment variables**
 
-| Variable       | Required | Notes                                                                   |
-| -------------- | -------- | ----------------------------------------------------------------------- |
-| `VITE_API_URL` | yes      | API base URL **including** `/api`, e.g. `https://api.yinphone.shop/api` |
+| Variable       | Required | Notes                                                                                                                                                          |
+| -------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_API_URL` | no       | Leave **unset** while the `/api` proxy rewrite is in place. Set it (base URL **including** `/api`) only if you switch the admin to a direct cross-origin call. |
 
-Also inlined at build time, and declared in `turbo.json` as `VITE_*`.
+`VITE_API_URL` is inlined at build time (and declared in `turbo.json` as
+`VITE_*`), so changing it requires a rebuild.
+
+The tradeoff of the proxy: admin API traffic takes one extra hop through Vercel,
+and preview deployments talk to the **production** API because the destination is
+hard-coded to the production alias. If you add `api.yinphone.shop`, update the
+rewrite destination (or drop the rewrite and set `VITE_API_URL` instead — see the
+next section).
 
 ## Domains, cookies and CORS
 
@@ -157,11 +244,16 @@ The admin signs in with a `yp_session` cookie marked `httpOnly`,
 `sameSite=lax`, `secure`. `sameSite=lax` means the browser only sends it on
 **same-site** requests, and "site" is the registrable domain. So
 `admin.yinphone.shop` → `api.yinphone.shop` works, but
-`admin.vercel.app` → `api.vercel.app` does **not** (different sites, and
-third-party cookies are blocked anyway). Symptom: login returns 200, then
-`/api/auth/me` returns `401 NOT_SIGNED_IN`.
+`yinphone-admin.vercel.app` → `yinphone-api.vercel.app` does **not** (public
+suffix: different sites). Symptom would be login returning 200, then
+`/api/auth/me` returning `401 NOT_SIGNED_IN`.
 
-Recommended domains:
+That is why the admin ships with the same-origin `/api` rewrite: the cookie is
+issued to the admin's own host, so everything is first-party today.
+
+### Moving to a custom domain
+
+Recommended layout:
 
 | Domain                | Project    |
 | --------------------- | ---------- |
@@ -169,11 +261,16 @@ Recommended domains:
 | `admin.yinphone.shop` | admin      |
 | `api.yinphone.shop`   | api        |
 
-Then set on the **api** project:
+Then:
 
-```
-CORS_ORIGINS=https://yinphone.shop,https://admin.yinphone.shop
-```
+1. **api** project → set `CORS_ORIGINS=https://yinphone.shop,https://admin.yinphone.shop`
+   (comma-separated, no trailing slash) and redeploy.
+2. **web** project → `NEXT_PUBLIC_API_URL=https://api.yinphone.shop` and
+   `NEXT_PUBLIC_SITE_URL=https://yinphone.shop`, then redeploy (both are inlined
+   at build time).
+3. **admin** project → either keep the proxy and change its rewrite destination
+   to `https://api.yinphone.shop/api/:path*`, or delete the `/api` rewrite, set
+   `VITE_API_URL=https://api.yinphone.shop/api` and redeploy.
 
 A host-only cookie on `api.yinphone.shop` is enough — you do not need
 `COOKIE_DOMAIN` for this layout. Add it only if you deliberately want the cookie
@@ -181,60 +278,69 @@ visible on sibling subdomains.
 
 ### Preview deployments and sign-in
 
-Preview URLs are `*-git-branch-team.vercel.app`, i.e. a different site from the
-API, so an admin session cannot stick there. Two options:
-
-1. **Test sign-in on a custom domain** (a preview branch domain, or just use the
-   production alias).
-2. **Proxy `/api` through the admin project** so the browser sees one origin.
-   Add this rewrite _before_ the catch-all in `apps/admin/vercel.json` and leave
-   `VITE_API_URL` unset:
-
-   ```json
-   {
-     "rewrites": [
-       {
-         "source": "/api/:path*",
-         "destination": "https://api.yinphone.shop/api/:path*"
-       },
-       { "source": "/(.*)", "destination": "/index.html" }
-     ]
-   }
-   ```
-
-   This mirrors the dev proxy in `apps/admin/vite.config.ts`: requests are
-   same-origin, the cookie is first-party, and CORS stops mattering. The tradeoff
-   is a hop through Vercel and a hard-coded API URL (previews then talk to the
-   production API). After changing it, rebuild — `VITE_API_URL` is baked in at
-   build time.
+Preview URLs are `*-git-branch-team.vercel.app`. With the `/api` rewrite in
+place the browser still sees one origin, so admin sign-in works on previews too —
+but those previews call the **production** API. If you want previews isolated,
+point the rewrite at a preview API or set `VITE_API_URL` per preview environment.
 
 ## Deploying from the CLI (optional)
 
-Git-based deploys are the normal workflow: push to `main` and each linked project
-builds with the settings above. To create and deploy the projects from a terminal
-instead, run `vercel link` once per app so each directory maps to its own project:
+Git-based deploys are the normal workflow: the three projects are already
+connected to `tettoewai/yinphone` (production branch `main`), so a push to `main`
+deploys all three unless the Ignored Build Step skips one.
+
+To create and deploy the projects from a terminal instead:
 
 ```bash
 vercel login
 
-cd apps/web
-vercel link --yes        # accept the detected monorepo root + apps/web
-vercel deploy --prod
+# One project per app. --project creates it (and connects the repo) if missing.
+cd apps/web   && vercel link --yes --project yinphone-web
+cd ../admin   && vercel link --yes --project yinphone-admin
+cd ../api     && vercel link --yes --project yinphone-api
 
-cd ../admin
-vercel link --yes
-vercel deploy --prod
-
-cd ../api
-vercel link --yes
-vercel deploy --prod
+# `vercel link` leaves the Root Directory as "." — set it explicitly.
+vercel project update yinphone-web   --root-directory apps/web
+vercel project update yinphone-admin --root-directory apps/admin
+vercel project update yinphone-api   --root-directory apps/api
 ```
 
-Add environment variables with `vercel env add <NAME> production` (and `preview`)
-from inside the app directory, or in the dashboard — they are per project, so the
-API's `DATABASE_URL` and each client's URL variable must be set on their own
-project. `.vercel/` is gitignored. CLI deploys always build; the Ignored Build
-Step only applies to Git deploys.
+With a Root Directory set, the CLI resolves it **relative to the directory you
+run it in**, so deploying from inside `apps/web` fails with
+`The specified Root Directory "apps/web" does not exist`. Deploy from the repo
+root instead and name the project:
+
+```bash
+vercel deploy --project yinphone-web   --prod
+vercel deploy --project yinphone-admin --prod
+vercel deploy --project yinphone-api   --prod
+```
+
+Environment variables are per project. `--value` keeps it non-interactive, and
+piping stdin keeps secrets out of your shell history:
+
+```bash
+vercel env add CORS_ORIGINS --project yinphone-api \
+  --environment production,preview \
+  --value "https://yinphone-web.vercel.app"
+
+cat ./database-url.txt | vercel env add DATABASE_URL --project yinphone-api \
+  --environment production,preview,development
+```
+
+Notes:
+
+- `apps/*/vercel.json` **overrides** the dashboard's Build Command and Output
+  Directory. Change those in the file, not in the dashboard, or the build will
+  silently ignore the dashboard value.
+- `vercel link` writes `.vercel/project.json` and a `.env.local` holding a
+  `VERCEL_OIDC_TOKEN` into the app directory, and appends `.vercel` / `.env*` to
+  that app's `.gitignore`. Those additions would also re-ignore
+  `.env.example`; the root `.gitignore` already covers `.env*` and `.vercel`, so
+  they can be reverted.
+- CLI deploys always build; the Ignored Build Step only applies to Git deploys.
+- Run `vercel build --project yinphone-api` from the repo root if you want to
+  inspect the generated function under `.vercel/output/functions` locally.
 
 ## Remote caching (optional)
 
@@ -268,12 +374,18 @@ turbo query affected --base=$VERCEL_GIT_PREVIOUS_SHA --packages web --exit-code
 
 ## Verifying a deployment
 
-1. `curl https://api.yinphone.shop/api/health` → `200` with a database ping.
-2. `curl https://api.yinphone.shop/api/products?limit=1` → one product.
-3. Storefront home page renders products (it fetches the API server-side).
-4. Admin sign-in with the seeded owner account; reload the page and confirm the
-   session survives (`GET /api/auth/me` returns the user).
-5. Open `/orders/<code>` directly in the admin — the SPA rewrite keeps it from
+1. `curl https://<api-domain>/api/health` → `200 {"status":"ok","db":"up"}`.
+2. `curl "https://<api-domain>/api/products?limit=1"` → one product with real data.
+3. `curl https://<web-domain>/en/catalog` → HTML containing product names (the
+   catalog is fetched from the API server-side).
+4. `curl https://<admin-domain>/api/health` → `200` from the API, proving the
+   admin proxy rewrite works.
+5. Admin sign-in with the seeded owner account; reload and confirm the session
+   survives (`GET /api/auth/me` returns the user). Through the deployed proxy the
+   whole flow looks like: `POST /api/auth/login` `200` with a
+   `yp_session` cookie (`HttpOnly; Secure; SameSite=Lax`), `GET /api/auth/me`
+   `200`, `POST /api/auth/logout` `204`, then `/api/auth/me` `401`.
+6. Open `/orders/<code>` directly in the admin — the SPA rewrite keeps it from
    404ing on refresh.
 
 ## Troubleshooting
@@ -283,11 +395,24 @@ from cache without outputs. Confirm `apps/admin/vercel.json` keeps
 `"outputDirectory": "dist"` and that `turbo.json` lists `dist/**` in
 `build.outputs` (it does). Redeploy without the Build Cache to confirm.
 
-**API build fails with a missing Prisma client** — the API project's Build
-Command must be `pnpm db:generate` (or something that runs `prisma generate`).
-`src/generated/prisma` is gitignored by design. If the log says
-`prisma: command not found`, check that no project environment variable sets
-`NODE_ENV=production` (see the note in the API section).
+**API returns `INTERNAL_FUNCTION_INVOCATION_FAILED` after ~60s with no runtime
+logs** — the function never finished booting. On Hobby the invocation is killed
+at 60s, and a bootstrap that hangs produces no logs at all. The known cause here
+is the server-capture contract: a top-level `await app.listen(...)` never
+resolves. Check that `src/main.ts` still has the `process.env.VERCEL` branch (see
+[API](#1-api-appsapi)) and that it uses
+`app.getHttpAdapter().getInstance()` — using `app.getHttpServer()` yields a
+server with no request listener that accepts and never answers.
+
+**API boot fails with `Cannot find package '@/…'`** — the preset is building from
+`src` again, so `outputDirectory` was lost. Keep `"outputDirectory": "dist"` in
+`apps/api/vercel.json` and keep the build script as
+`nest build && tsc-alias -p tsconfig.build.json`.
+
+**API build fails with a missing Prisma client** — the API project's build must
+run `prisma generate` before `nest build`. The `api` package's `postinstall`
+normally covers it; if it was skipped, check that no project environment variable
+sets `NODE_ENV=production` (see the note in the API section).
 
 **`401 NOT_SIGNED_IN` right after a successful login** — cookies/CORS. Use
 subdomains of one registrable domain, set `CORS_ORIGINS`, and serve over HTTPS
