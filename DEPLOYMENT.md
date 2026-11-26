@@ -22,15 +22,15 @@ is built — plus any workspace dependency with a `build` task.
 
 | App        | URL                               |
 | ---------- | --------------------------------- |
-| storefront | https://yinphone-web.vercel.app   |
+| storefront | https://yinphone.vercel.app       |
 | admin      | https://yinphone-admin.vercel.app |
 | api        | https://yinphone-api.vercel.app   |
 
-Those `*.vercel.app` URLs are the current production aliases. The admin reaches
-the API through a same-origin `/api` rewrite (see [Admin](#3-admin-appsadmin)),
-so sign-in works without a custom domain. Adding a domain later is a matter of
-assigning it and updating two environment variables — see
-[Domains, cookies and CORS](#domains-cookies-and-cors).
+Those are the current production domains. The admin reaches the API through a
+same-origin `/api` rewrite (see [Admin](#3-admin-appsadmin)), so sign-in works
+without a custom domain. Switching the storefront to a real domain is a matter of
+assigning it to the `yinphone-web` project and updating two environment
+variables — see [Domains, cookies and CORS](#domains-cookies-and-cors).
 
 ## Before you start
 
@@ -130,7 +130,7 @@ branch runs, so behaviour is unchanged.
 | Variable                                                                                 | Required | Notes                                                                                                                                    |
 | ---------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`                                                                           | yes      | Postgres URL. Used at runtime and by `prisma generate`.                                                                                  |
-| `CORS_ORIGINS`                                                                           | yes      | Comma-separated browser origins, e.g. `https://yinphone-web.vercel.app`                                                                  |
+| `CORS_ORIGINS`                                                                           | yes      | Comma-separated browser origins, e.g. `https://yinphone.vercel.app`                                                                      |
 | `COOKIE_SECURE`                                                                          | no       | Defaults to on because Vercel runs in production mode                                                                                    |
 | `COOKIE_DOMAIN`                                                                          | no       | Only if you want the session cookie shared across subdomains, e.g. `.yinphone.shop`. Leave unset for the normal `api.` + `admin.` setup. |
 | `SESSION_TTL_HOURS`, `SESSION_REMEMBER_DAYS`, `LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_MINUTES` | no       | Defaults are in `apps/api/README.md`                                                                                                     |
@@ -184,6 +184,49 @@ The NestJS preset runs the app as Vercel Functions, not as a long-lived server:
 If you later need a persistent Node process, deploy `apps/api` to a container
 host (Railway, Fly, Render, a VPS) instead and keep only `web` + `admin` on
 Vercel — set `NEXT_PUBLIC_API_URL` / `VITE_API_URL` to that host.
+
+### Database connections (read this before going live)
+
+A serverless function does not share one connection pool: **every warm instance
+keeps its own**. `pg`'s default is 10 connections per pool, so a dozen instances
+ask for 120 slots and the database starts refusing connections:
+
+```
+Too many database connections opened: too many connections for role "prisma_migration"
+```
+
+Two independent things control whether that happens.
+
+**1. The role in `DATABASE_URL`.** Prisma Postgres creates two login roles and
+caps each separately (observed on this database: `max_connections` 50,
+`prisma_migration` 45, `prisma_application` 30):
+
+| Role                 | Intended for                        |
+| -------------------- | ----------------------------------- |
+| `prisma_migration`   | `prisma migrate deploy` / `db seed` |
+| `prisma_application` | the running application             |
+
+The URL currently deployed authenticates as `prisma_migration`, i.e. the
+migration role. Its password **is not** the application role's password (proven
+by trying), so this cannot be swapped by editing the username — copy the
+application connection string (or, better, the pooled / Accelerate string) from
+the Prisma Console and set it as `DATABASE_URL` on the `yinphone-api` project for
+Production and Preview, then redeploy. Keep the migration URL locally for
+`prisma migrate`.
+
+**2. The pool size in `apps/api/src/prisma/prisma.service.ts`.** `PrismaService`
+now builds its driver adapter with `max: 1`, `allowExitOnIdle: true`,
+`idleTimeoutMillis: 5000`, so each instance holds at most one connection and
+releases it when idle. That keeps the footprint proportional to _instances_
+instead of 10× instances, which is what makes a small per-role limit survivable.
+Raise `max` only if you move to a real pooler (PgBouncer, Accelerate, Neon /
+Supabase pooler) — in that case the pooler owns the connections and the pool
+setting stops being load-bearing.
+
+A symptom worth recognising: while the database is saturated, the storefront
+returns 500 as well, because its server components fetch the catalog and do not
+catch API failures — `GET /api/products?limit=100 failed (500)` shows up in the
+storefront's runtime logs.
 
 ## 2. Storefront (`apps/web`)
 
@@ -338,7 +381,7 @@ piping stdin keeps secrets out of your shell history:
 ```bash
 vercel env add CORS_ORIGINS --project yinphone-api \
   --environment production,preview \
-  --value "https://yinphone-web.vercel.app"
+  --value "https://yinphone.vercel.app"
 
 cat ./database-url.txt | vercel env add DATABASE_URL --project yinphone-api \
   --environment production,preview,development
@@ -434,8 +477,18 @@ sets `NODE_ENV=production` (see the note in the API section).
 subdomains of one registrable domain, set `CORS_ORIGINS`, and serve over HTTPS
 (or set `COOKIE_SECURE=false` while testing over plain HTTP).
 
-**Database connection errors at runtime** — `DATABASE_URL` must be the pooled
-connection string, and the function region should be near the database.
+**Database connection errors at runtime** — `Too many database connections
+opened` means the per-role limit is exhausted by scaled-out instances, not a
+network problem. Check the role in `DATABASE_URL` and the pool size first (see
+[Database connections](#database-connections-read-this-before-going-live)).
+Unauthenticated probes are misleading: while the role is saturated even
+`psql`/`pg` from your laptop is refused with `53300 too many connections for role`.
+To see where the connections are going, connect as that role and run:
+
+```sql
+select usename, count(*), count(*) filter (where state = 'idle')
+from pg_stat_activity group by 1 order by 2 desc;
+```
 
 **pnpm not detected / install fails** — the root `package.json` pins
 `packageManager`, so Vercel installs pnpm 11 via corepack. If the build log says
