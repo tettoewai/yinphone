@@ -17,6 +17,7 @@ import { OrdersPage } from "@/pages/orders-page"
 import { ProductFormPage } from "@/pages/product-form-page"
 import { ProductsPage } from "@/pages/products-page"
 import { ResetPasswordPage } from "@/pages/reset-password-page"
+import { SettingsPage } from "@/pages/settings-page"
 
 export default function App() {
   return (
@@ -59,6 +60,7 @@ export default function App() {
         <Route path={ROUTES.productNew} element={<ProductFormPage />} />
         <Route path={ROUTES.categories} element={<CategoriesPage />} />
         <Route path={ROUTES.channels} element={<ChannelsPage />} />
+        <Route path={ROUTES.settings} element={<SettingsPage />} />
       </Route>
       <Route path="/" element={<Navigate to={ROUTES.dashboard} replace />} />
       <Route path="*" element={<Navigate to={ROUTES.dashboard} replace />} />

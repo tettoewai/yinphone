@@ -13,6 +13,7 @@ export const ROUTES = {
   /** The add-product editor; static segment, so it outranks any `products/:id`. */
   productNew: "/products/new",
   resetPassword: "/reset-password",
+  settings: "/settings",
 } as const
 
 /** `/orders/YP-2026-0001` for a given order code. */

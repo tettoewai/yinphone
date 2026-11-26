@@ -75,6 +75,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     label: "ဆက်တင်များ",
     labelEn: "Settings",
     icon: Settings,
+    to: ROUTES.settings,
   },
 ]
 
