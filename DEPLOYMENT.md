@@ -77,9 +77,25 @@ preset then serves `dist/main.js`. Keep `"outputDirectory": "dist"` in
 build.
 
 The Prisma client is generated into `src/generated/prisma` and is gitignored, so
-it has to exist before `nest build` compiles it. The `api` package's
-`postinstall` (`prisma generate`) runs during Vercel's install step and covers
-that; `pnpm db:generate` from the repo root does the same thing locally.
+it has to exist before `nest build` compiles it. The `api` package's build script
+starts with `prisma generate` for that reason:
+
+```json
+"build": "prisma generate && nest build && tsc-alias -p tsconfig.build.json"
+```
+
+Don't move that back to `postinstall` alone. Vercel restores `node_modules` from
+its build cache, so a deploy can log `Already up to date` and skip the install
+step entirely — including `postinstall` — and then a cache-missing Turborepo run
+compiles against a missing client:
+
+```
+src/admin/orders/admin-orders.service.ts:6:8 - error TS2307:
+Cannot find module '../../generated/prisma/models.js'
+```
+
+Generating inside the `build` task also means Turborepo caches the result, so a
+cache hit skips both the generate and the compile.
 
 ### `main.ts` and Vercel's server capture
 
