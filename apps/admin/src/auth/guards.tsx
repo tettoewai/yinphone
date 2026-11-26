@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { Navigate } from "react-router-dom"
 
 import { useSession } from "@/auth/session-context"
+import { AccessDeniedPage } from "@/components/states/access-denied"
 import { peekPassword } from "@/lib/pending-password"
 import { ROUTES, landingFor } from "@/lib/routes"
 
@@ -37,6 +38,24 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (user.mustChangePassword) {
     return <Navigate to={ROUTES.resetPassword} replace />
   }
+
+  return <>{children}</>
+}
+
+/**
+ * Requires a session whose role is OWNER. Staff keep their shell — the denied
+ * screen is rendered inside the layout rather than redirecting, so the sidebar
+ * still works and the reason is on screen instead of a silent bounce.
+ */
+export function RequireOwner({ children }: { children: ReactNode }) {
+  const { status, user } = useSession()
+
+  if (status === "loading") return <SessionSplash />
+  if (!user) return <Navigate to={ROUTES.login} replace />
+  if (user.mustChangePassword) {
+    return <Navigate to={ROUTES.resetPassword} replace />
+  }
+  if (user.role !== "OWNER") return <AccessDeniedPage />
 
   return <>{children}</>
 }

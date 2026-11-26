@@ -38,6 +38,9 @@ export function AdminTopbar({ onOpenNav }: AdminTopbarProps) {
   const { user, signOut } = useSession()
 
   const current = navItemForPath(pathname)?.label ?? "Admin"
+  // The states sheet is a preview route with no sidebar entry, so it has no
+  // nav item to borrow a crumb from.
+  const currentLabel = pathname === ROUTES.states ? "စနစ်အခြေအနေများ" : current
   // The screens that add a crumb of their own; the last segment names it.
   const orderDetail = useMatch(ROUTES.orderDetail)
   const productNew = useMatch(ROUTES.productNew)
@@ -64,7 +67,7 @@ export function AdminTopbar({ onOpenNav }: AdminTopbarProps) {
               to={ROUTES.products}
               className="truncate hover:text-foreground"
             >
-              {current}
+              {currentLabel}
             </Link>
             <ChevronRight className="size-[13px] shrink-0" strokeWidth={3.7} />
             <span className="truncate font-semibold text-foreground">
@@ -74,7 +77,7 @@ export function AdminTopbar({ onOpenNav }: AdminTopbarProps) {
         ) : orderDetail ? (
           <>
             <Link to={ROUTES.orders} className="truncate hover:text-foreground">
-              {current}
+              {currentLabel}
             </Link>
             <ChevronRight className="size-[13px] shrink-0" strokeWidth={3.7} />
             <span className="truncate font-semibold text-foreground">
@@ -83,7 +86,7 @@ export function AdminTopbar({ onOpenNav }: AdminTopbarProps) {
           </>
         ) : (
           <span className="truncate font-semibold text-foreground">
-            {current}
+            {currentLabel}
           </span>
         )}
       </div>

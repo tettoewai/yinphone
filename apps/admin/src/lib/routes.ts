@@ -14,6 +14,8 @@ export const ROUTES = {
   productNew: "/products/new",
   resetPassword: "/reset-password",
   settings: "/settings",
+  /** Utility-state preview sheet; deliberately absent from the sidebar. */
+  states: "/states",
 } as const
 
 /** `/orders/YP-2026-0001` for a given order code. */

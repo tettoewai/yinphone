@@ -9,6 +9,8 @@
  * (see `.env.example`); that origin must also be in the API's `CORS_ORIGINS`.
  */
 
+import { notifySessionExpired } from "@/lib/session-expiry"
+
 const API_BASE =
   (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "") || "/api"
 
@@ -55,6 +57,18 @@ type ApiErrorInit = {
   retryAfterSeconds?: number
   lockedUntil?: string
 }
+
+/**
+ * 401s that mean "those credentials are wrong", not "the session ended": the
+ * login attempt itself, the bootstrap probe (a normal signed-out path) and
+ * sign-out (where a stale cookie is expected). None of them should raise the
+ * re-authentication dialog.
+ */
+const SESSION_EXEMPT_PATHS = new Set([
+  "/auth/login",
+  "/auth/logout",
+  "/auth/me",
+])
 
 export class ApiError extends Error {
   /** HTTP status, or `0` when the request never reached the server. */
@@ -127,6 +141,13 @@ async function request<T>(
   const body = await readBody(response)
 
   if (!response.ok) {
+    // A 401 anywhere else means the cookie expired mid-session. Tell the shell
+    // so it can ask for the password again without discarding the current page
+    // (and any unsaved form state on it).
+    if (response.status === 401 && !SESSION_EXEMPT_PATHS.has(path)) {
+      notifySessionExpired()
+    }
+
     const error = (body ?? {}) as ErrorBody
 
     throw new ApiError({

@@ -67,6 +67,21 @@
   --font-sans: var(--font-sans);
 }
 
+@theme {
+  /* Loading skeletons (`skeleton.tsx`): a soft highlight sweeping across the
+     muted block. Declared here because the sweep is shared by every screen. */
+  --animate-shimmer: shimmer 1.8s ease-in-out infinite;
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+}
+
 :root {
   --background: oklch(0.976 0.0082 91.48);
   --foreground: oklch(0.2868 0.0084 75.25);
