@@ -105,3 +105,10 @@ routes are implemented; the rest still return `501` until they land. See
 affect a build must be declared in `turbo.json` (`env` / `globalEnv`), otherwise
 Turbo may reuse a cache entry produced with different values. `NEXT_PUBLIC_*`
 (web) and `VITE_*` (admin) are already declared for `build`.
+
+## Deployment
+
+The repo is set up to deploy as three Vercel Projects (one per app, each with its
+own Root Directory). See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the project
+settings, environment variables, domain/cookie notes and the API's serverless
+caveats.
