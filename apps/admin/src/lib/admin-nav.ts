@@ -8,7 +8,6 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-import { ORDERS_MOCK } from "@/lib/orders-mock"
 import { ROUTES } from "@/lib/routes"
 
 export type AdminNavItem = {
@@ -22,16 +21,11 @@ export type AdminNavItem = {
    */
   to?: string
   /**
-   * Rendered as the gold count chip. Derived from the mock orders until the
-   * orders API can supply a real pending count.
+   * Rendered as the gold count chip. The orders chip returns with the
+   * dashboard's stats endpoint, which can supply a real pending count.
    */
   badge?: number
 }
-
-/** Orders still waiting for a reply. Mock-derived until `GET /api/orders` exists. */
-const pendingOrderCount = ORDERS_MOCK.filter(
-  (order) => order.status === "NEW"
-).length
 
 export const ADMIN_NAV: readonly AdminNavItem[] = [
   {
@@ -47,7 +41,6 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     labelEn: "Orders",
     icon: ShoppingBag,
     to: ROUTES.orders,
-    badge: pendingOrderCount,
   },
   {
     key: "products",

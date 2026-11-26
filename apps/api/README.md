@@ -136,8 +136,8 @@ Responds with `{ items, total, limit, offset }`.
 ## Admin API (`/api/admin`)
 
 Setup scaffolding for the dashboard: routes, guards and Zod validation are
-wired, and every handler responds `501 Not Implemented` until the
-implementation phase. All routes require a session (`AdminAuthGuard` +
+wired. The orders routes are implemented; the rest still respond `501 Not
+Implemented` until they land. All routes require a session (`AdminAuthGuard` +
 `RolesGuard`); rows marked OWNER additionally carry `@Roles('OWNER')`.
 
 | Method   | Path                                 | Roles         |
@@ -169,6 +169,37 @@ required role gets `403 FORBIDDEN`. The guard wiring is covered by
 `src/admin/admin-guards.spec.ts` (boots the app with a mocked database) and by
 the e2e suite against a real one.
 
+### `GET /api/admin/orders`
+
+Newest first. Responds with `{ items, total, limit, offset, counts }`, where
+`counts` is `{ NEW, CONFIRMED, DELIVERED, CANCELLED }` measured over every facet
+**except** status (so the screen's filter pills do not collapse to the selected
+status). Each item is the admin orders row: `id`, `code`, `customerName`,
+`customerPhone`, `itemCount` (summed units), `totalMmk`, `channel` (slug),
+`status` and `createdAt` (ISO 8601).
+
+| Query     | Type                                               | Default | Notes                                           |
+| --------- | -------------------------------------------------- | ------- | ----------------------------------------------- |
+| `q`       | string                                             | –       | Order code, customer name or phone (`contains`) |
+| `channel` | string                                             | –       | Channel slug                                    |
+| `status`  | `NEW` \| `CONFIRMED` \| `DELIVERED` \| `CANCELLED` | –       |                                                 |
+| `range`   | `today` \| `7d` \| `30d` \| `all`                  | `7d`    | Calendar days in Asia/Yangon (UTC+6:30)         |
+| `limit`   | integer                                            | `20`    | 1–100                                           |
+| `offset`  | integer                                            | `0`     |                                                 |
+
+### `GET /api/admin/orders/:code`
+
+The list row plus `updatedAt`, the customer's checkout `note`,
+`priorOrderCount` (earlier orders from the same phone) and `items`. Each line
+carries its `productId`, `slug`, `nameMy`, `nameEn`, `size`, `quantity`,
+`unitPriceMmk` and `lineTotalMmk`. Responds `404` when the code is unknown.
+
+### `PATCH /api/admin/orders/:code/status`
+
+Body `{ "status": "CONFIRMED" }`. Any status is accepted — staff correct data
+by hand too — and the response is the updated order detail. There is no status
+audit log yet.
+
 ## Data model
 
 `Channel`, `Category`, `Product`, `ProductImage`, `Order`, `OrderItem`,
@@ -186,8 +217,11 @@ filter deliberately excludes those products.
 `OrderItem.size` snapshots the size the customer picked. It is nullable because
 one-size items have nothing to record.
 
-Not modelled yet: product badges, compare-at prices. The storefront shows those
-from its local mock data until the schema catches up.
+Not modelled yet: product badges, compare-at prices, a shipping address, a
+delivery fee and a status audit log. The storefront shows badges and
+compare-at prices from its local mock data until the schema catches up, and the
+admin order detail has no address, delivery fee or activity feed for the same
+reason.
 
 ## Scripts
 

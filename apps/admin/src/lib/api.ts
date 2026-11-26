@@ -40,6 +40,65 @@ export type ChangePasswordInput = {
   newPassword: string
 }
 
+export type AdminOrderStatus = "NEW" | "CONFIRMED" | "DELIVERED" | "CANCELLED"
+
+export type AdminOrderSize = "S" | "M" | "L" | "XL"
+
+/** One row of `GET /api/admin/orders`; the list screen's `OrderSummary`. */
+export type AdminOrderSummary = {
+  id: string
+  code: string
+  customerName: string
+  customerPhone: string
+  /** Summed units, not lines. */
+  itemCount: number
+  totalMmk: number
+  /** Channel slug, e.g. `messenger`. */
+  channel: string
+  status: AdminOrderStatus
+  createdAt: string
+}
+
+export type AdminOrderItem = {
+  id: string
+  productId: string
+  slug: string
+  nameMy: string
+  nameEn: string
+  /** `null` for one-size items such as longyi. */
+  size: AdminOrderSize | null
+  quantity: number
+  unitPriceMmk: number
+  lineTotalMmk: number
+}
+
+export type AdminOrderDetail = AdminOrderSummary & {
+  updatedAt: string
+  /** The customer's checkout note, or `null`. */
+  note: string | null
+  /** Earlier orders from the same phone number. */
+  priorOrderCount: number
+  items: AdminOrderItem[]
+}
+
+export type AdminOrderListQuery = {
+  q?: string
+  channel?: string
+  status?: AdminOrderStatus
+  range?: "today" | "7d" | "30d" | "all"
+  limit?: number
+  offset?: number
+}
+
+export type AdminOrderPage = {
+  items: AdminOrderSummary[]
+  total: number
+  limit: number
+  offset: number
+  /** Counts by status over every facet except the status filter. */
+  counts: Record<AdminOrderStatus, number>
+}
+
 /** The snake-case-free error body the API returns for known failures. */
 type ErrorBody = {
   code?: string
@@ -113,7 +172,7 @@ function messageFrom(body: unknown, fallback: string) {
 
 async function request<T>(
   path: string,
-  options: { method?: string; body?: unknown } = {}
+  options: { method?: string; body?: unknown; signal?: AbortSignal } = {}
 ): Promise<T> {
   let response: Response
 
@@ -123,6 +182,7 @@ async function request<T>(
       // `include` behaves like `same-origin` for the default relative base and
       // still carries the cookie when `VITE_API_URL` points at another origin.
       credentials: "include",
+      signal: options.signal,
       headers:
         options.body === undefined
           ? undefined
@@ -130,7 +190,11 @@ async function request<T>(
       body:
         options.body === undefined ? undefined : JSON.stringify(options.body),
     })
-  } catch {
+  } catch (error) {
+    // An aborted request was cancelled on purpose (a newer query won); let the
+    // caller see that instead of reporting it as a network failure.
+    if ((error as { name?: string }).name === "AbortError") throw error
+
     throw new ApiError({
       status: 0,
       code: "NETWORK",
@@ -184,5 +248,40 @@ export const authApi = {
       method: "POST",
       body: input,
     })
+  },
+}
+
+/** Omits empty values, so a cleared filter never lands in the query string. */
+function toQueryString(params: Record<string, string | number | undefined>) {
+  const search = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === "") continue
+    search.set(key, String(value))
+  }
+
+  const query = search.toString()
+  return query ? `?${query}` : ""
+}
+
+export const ordersApi = {
+  list(query: AdminOrderListQuery = {}, signal?: AbortSignal) {
+    return request<AdminOrderPage>(`/admin/orders${toQueryString(query)}`, {
+      signal,
+    })
+  },
+
+  get(code: string, signal?: AbortSignal) {
+    return request<AdminOrderDetail>(
+      `/admin/orders/${encodeURIComponent(code)}`,
+      { signal }
+    )
+  },
+
+  updateStatus(code: string, status: AdminOrderStatus) {
+    return request<AdminOrderDetail>(
+      `/admin/orders/${encodeURIComponent(code)}/status`,
+      { method: "PATCH", body: { status } }
+    )
   },
 }

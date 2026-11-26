@@ -33,10 +33,19 @@ let currentSession: ReturnType<typeof sessionFor> | null = null;
 const prismaStub = {
   $connect: async () => {},
   $disconnect: async () => {},
+  $transaction: async (operations: Promise<unknown>[]) =>
+    Promise.all(operations),
   adminSession: {
     findUnique: async () => currentSession,
     update: async () => ({}),
     deleteMany: async () => ({ count: 0 }),
+  },
+  // The orders handler is implemented, so it needs a (empty) result to return.
+  order: {
+    findMany: async () => [],
+    count: async () => 0,
+    findUnique: async () => null,
+    update: async () => ({}),
   },
 };
 
@@ -79,11 +88,12 @@ describe('admin guard wiring', () => {
     currentSession = sessionFor('STAFF');
     const cookie = `${SESSION_COOKIE}=mock-token`;
 
-    // 501 while handlers are setup stubs — the point is the guards passed.
-    await request(app.getHttpServer())
+    // Orders is implemented, so passing the guards means an empty page, not 501.
+    const orders = await request(app.getHttpServer())
       .get('/api/admin/orders')
       .set('Cookie', cookie)
-      .expect(501);
+      .expect(200);
+    expect(orders.body).toMatchObject({ items: [], total: 0 });
 
     const response = await request(app.getHttpServer())
       .get('/api/admin/staff')

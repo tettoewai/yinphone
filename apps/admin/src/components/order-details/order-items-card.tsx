@@ -10,11 +10,7 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { ProductThumb } from "@/components/product-thumb"
 import { formatMmk } from "@/lib/format"
-import {
-  orderItemCount,
-  orderSubtotal,
-  type OrderDetail,
-} from "@/lib/order-details"
+import { orderItemCount, type OrderDetail } from "@/lib/order-details"
 
 const headCell =
   "py-2.5 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
@@ -26,8 +22,6 @@ const headCell =
  * readable.
  */
 export function OrderItemsCard({ order }: { order: OrderDetail }) {
-  const subtotal = orderSubtotal(order)
-
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3.5">
@@ -75,9 +69,11 @@ export function OrderItemsCard({ order }: { order: OrderDetail }) {
                     <div className="font-body text-sm leading-[1.7] font-bold text-foreground">
                       {item.name}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.latinName} • SKU {item.sku}
-                    </div>
+                    {item.latinName ? (
+                      <div className="text-xs text-muted-foreground">
+                        {item.latinName}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </TableCell>
@@ -99,19 +95,7 @@ export function OrderItemsCard({ order }: { order: OrderDetail }) {
       </Table>
 
       <div className="flex flex-col gap-1.5 border-t border-border bg-background px-5 py-4">
-        <div className="flex justify-between gap-3 text-sm text-muted-foreground">
-          <span className="font-body">Subtotal • အစုစုပေါင်း</span>
-          <span className="font-bold text-foreground tabular-nums">
-            {formatMmk(subtotal)}
-          </span>
-        </div>
-        <div className="flex justify-between gap-3 text-sm text-muted-foreground">
-          <span>Delivery ({order.delivery.courier})</span>
-          <span className="font-semibold text-foreground tabular-nums">
-            {formatMmk(order.delivery.feeMmk)}
-          </span>
-        </div>
-        <div className="flex items-center justify-between gap-3 border-t border-border pt-1.5">
+        <div className="flex items-center justify-between gap-3">
           <span className="font-body text-sm leading-[1.7] font-bold text-foreground">
             Total • စုစုပေါင်း
           </span>

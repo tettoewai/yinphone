@@ -2,33 +2,30 @@
  * Types and pure helpers behind the order-detail screen (`/orders/:code`).
  *
  * Everything extends `OrderSummary` from `lib/orders.ts`, so a row in the list
- * and the detail page describe the same order. As with the list, the shapes
- * mirror the API's Prisma models — `orders-mock.ts` and `order-details-mock.ts`
- * are the only places that know the data is fake.
+ * and the detail page describe the same order. `toOrderDetail` maps the API's
+ * `GET /api/admin/orders/:code` payload onto this shape, and the page then owns
+ * the status and the activity log for the session.
  */
 
-import type { OrderStatus, OrderSummary } from "@/lib/orders"
+import type { AdminOrderDetail } from "@/lib/api"
+import {
+  channelName,
+  toOrderSummary,
+  type OrderStatus,
+  type OrderSummary,
+} from "@/lib/orders"
 
-/** One line of the items table. `quantity` is always 1 today, but the API's
- * order items carry a quantity and the totals must not assume otherwise. */
+/** One line of the items table. */
 export type OrderItem = {
   id: string
   /** Burmese product name, e.g. `ချည်သား Midi ဂါဝန်`. */
   name: string
-  /** Latin name shown under it, e.g. `Cotton Midi Dress`. */
+  /** Latin name shown under it, e.g. `Cotton Midi Dress`. Empty when absent. */
   latinName: string
-  sku: string
-  /** Size and colour, as picked at checkout: `Size M • Peach`. */
+  /** The size picked at checkout: `Size M`, or `One size`. */
   variant: string
   quantity: number
   unitPriceMmk: number
-}
-
-/** The courier and its fee. Kept separate from `totalMmk` so the totals block
- * can show the breakdown the design asks for. */
-export type Delivery = {
-  courier: string
-  feeMmk: number
 }
 
 export type ActivityTone = "accent" | "primary" | "success" | "muted"
@@ -50,31 +47,73 @@ export type ActivityEntry = {
 
 /** An order plus everything the detail screen needs that the list does not. */
 export type OrderDetail = OrderSummary & {
-  /** Township and city, e.g. `Pabedan • Yangon`. */
-  address: string
-  /** First glyph of the Burmese name, for the customer avatar. */
-  customerInitial: string
-  isVip: boolean
-  /** Orders this customer placed before this one. */
+  updatedAt: string
+  /** Earlier orders this customer placed before this one. */
   priorOrderCount: number
   items: readonly OrderItem[]
-  delivery: Delivery
   /** Checkout note from the customer, or `null` when there is none. */
   note: string | null
   activity: readonly ActivityEntry[]
-}
-
-export function orderSubtotal(order: Pick<OrderDetail, "items">) {
-  return order.items.reduce(
-    (sum, item) => sum + item.quantity * item.unitPriceMmk,
-    0
-  )
 }
 
 /** Units in the order, summed from the lines rather than trusted from the
  * summary — the two cannot drift then. */
 export function orderItemCount(order: Pick<OrderDetail, "items">) {
   return order.items.reduce((sum, item) => sum + item.quantity, 0)
+}
+
+/** `"မသီရိ နဒီ • Thiri Nadi"` → `"မ"`, for the customer avatar tile. */
+export function customerInitial(customerName: string) {
+  const burmese = customerName.split("•")[0]?.trim() ?? customerName
+  return Array.from(burmese)[0] ?? "?"
+}
+
+/** `Size M`, or `One size` for items such as longyi. */
+function variantLabel(size: string | null) {
+  return size ? `Size ${size}` : "One size"
+}
+
+/**
+ * Maps the API's order-detail payload onto the shape the screen renders.
+ *
+ * The activity log starts with the one entry the server can prove — the order
+ * was created — because there is no status audit table yet. Changes made in
+ * this session are appended on top of it.
+ */
+export function toOrderDetail(order: AdminOrderDetail): OrderDetail {
+  const summary = toOrderSummary(order)
+
+  return {
+    ...summary,
+    updatedAt: order.updatedAt,
+    priorOrderCount: order.priorOrderCount,
+    note: order.note,
+    items: order.items.map((item) => ({
+      id: item.id,
+      name: item.nameMy || item.nameEn,
+      latinName: item.nameMy ? item.nameEn : "",
+      variant: variantLabel(item.size),
+      quantity: item.quantity,
+      unitPriceMmk: item.unitPriceMmk,
+    })),
+    activity: [orderCreatedEntry(summary)],
+  }
+}
+
+/** The one activity entry the API can account for: creation. */
+export function orderCreatedEntry(
+  order: Pick<OrderSummary, "id" | "channel" | "createdAt">
+): ActivityEntry {
+  const channel = channelName(order.channel)
+
+  return {
+    id: `${order.id}_created`,
+    title: `Order created via ${channel}`,
+    detail: ACTIVITY_DETAIL.NEW,
+    actor: "System",
+    at: order.createdAt,
+    tone: "accent",
+  }
 }
 
 /**

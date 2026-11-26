@@ -1,23 +1,21 @@
 /**
  * Order-list types, presentation meta and the pure helpers behind `/orders`.
  *
- * The shapes mirror the API's Prisma models (`apps/api/prisma/schema.prisma`)
- * so `orders-mock.ts` can be swapped for a real `GET /api/orders` response
- * without touching a component. Nothing here imports React — filtering and
- * counting are plain functions, which keeps them easy to reason about (and
- * cheap to unit-test once the app has a runner). Paging lives in `paging.ts`
- * because both list screens share it.
+ * The API (`/api/admin/orders`) owns filtering and paging now, so this module
+ * holds only what the screens need to render: the row shape, the status and
+ * channel metadata, the date presets, page sizes, and the mapping from an API
+ * row onto `OrderSummary`. Nothing here imports React.
  */
 
-import { yangonDaysAgo } from "@/lib/yangon-time"
+import type { AdminOrderSummary } from "@/lib/api"
 
 /** Same values as the API's `OrderStatus` enum. */
 export type OrderStatus = "NEW" | "CONFIRMED" | "DELIVERED" | "CANCELLED"
 
-/** Channel slugs seeded in the API (`messenger`, `viber`, `telegram`). */
+/** Channel slugs the admin screens know how to render. */
 export type ChannelSlug = "messenger" | "viber" | "telegram"
 
-/** One row of the orders table. A real endpoint returns this shape. */
+/** One row of the orders table. `GET /api/admin/orders` returns this shape. */
 export type OrderSummary = {
   id: string
   /** Human-facing code, e.g. `YP-2026-0024`. */
@@ -129,6 +127,35 @@ export const CHANNEL_BG: Record<ChannelSlug, string> = {
   telegram: "bg-telegram",
 }
 
+/** Whether an API channel slug is one the screens know how to draw. */
+export function isChannelSlug(value: string): value is ChannelSlug {
+  return (CHANNELS as readonly string[]).includes(value)
+}
+
+/**
+ * Narrows an API channel slug to one with an icon and a colour. The seed ships
+ * exactly the three channels above; when the channels screen can add more, the
+ * icon and colour maps are what need widening.
+ */
+export function toChannelSlug(slug: string): ChannelSlug {
+  return isChannelSlug(slug) ? slug : "messenger"
+}
+
+/** Maps a `GET /api/admin/orders` row onto the shape the screens render. */
+export function toOrderSummary(order: AdminOrderSummary): OrderSummary {
+  return {
+    id: order.id,
+    code: order.code,
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    itemCount: order.itemCount,
+    totalMmk: order.totalMmk,
+    channel: toChannelSlug(order.channel),
+    status: order.status,
+    createdAt: order.createdAt,
+  }
+}
+
 /**
  * Date presets. `days` counts calendar days including today, so `7` means
  * "today and the six days before it" in Asia/Yangon. `null` means no bound.
@@ -154,99 +181,8 @@ export function dateRangeLabel(range: DateRangeKey) {
   )
 }
 
-/** Filter selections. `"all"` is the unfiltered value for each facet. */
-export type OrderFilters = {
-  query: string
-  channel: ChannelSlug | "all"
-  range: DateRangeKey
-  status: OrderStatus | "all"
-}
-
-export const DEFAULT_ORDER_FILTERS: OrderFilters = {
-  query: "",
-  channel: "all",
-  range: "7d",
-  status: "all",
-}
-
 export const PAGE_SIZES = [10, 25, 50] as const
 
 export type PageSize = (typeof PAGE_SIZES)[number]
 
 export const DEFAULT_PAGE_SIZE: PageSize = 10
-
-/** A query typed with only phone punctuation is treated as a phone number. */
-const PHONE_LIKE = /^[\d\s+()-]+$/
-
-const NON_DIGITS = /\D/g
-
-function digitsOnly(value: string) {
-  return value.replace(NON_DIGITS, "")
-}
-
-/**
- * Matches the search box: order code, customer name or phone. Phone numbers are
- * stored with spaces, so `09123456789` must find `09 123 456 789`.
- */
-export function matchesQuery(order: OrderSummary, query: string) {
-  const needle = query.trim().toLowerCase()
-  if (!needle) return true
-
-  if (order.code.toLowerCase().includes(needle)) return true
-  if (order.customerName.toLowerCase().includes(needle)) return true
-
-  if (!PHONE_LIKE.test(needle)) return false
-
-  const digits = digitsOnly(needle)
-  return digits.length > 0 && digitsOnly(order.customerPhone).includes(digits)
-}
-
-/** Start of the selected preset, as a UTC instant; `null` for "All time". */
-function rangeStart(range: DateRangeKey, now: Date): number | null {
-  const days = DATE_RANGES.find((option) => option.key === range)?.days
-  if (!days) return null
-
-  return yangonDaysAgo(days - 1, now).getTime()
-}
-
-/**
- * Applies every facet except `status`. The status pills count against this
- * result, so their numbers do not collapse to the selected status once one is
- * chosen.
- */
-export function filterOrders(
-  orders: readonly OrderSummary[],
-  filters: Omit<OrderFilters, "status">,
-  now: Date
-) {
-  const since = rangeStart(filters.range, now)
-
-  return orders.filter((order) => {
-    if (filters.channel !== "all" && order.channel !== filters.channel) {
-      return false
-    }
-
-    if (since !== null && new Date(order.createdAt).getTime() < since) {
-      return false
-    }
-
-    return matchesQuery(order, filters.query)
-  })
-}
-
-export function statusCounts(
-  orders: readonly OrderSummary[]
-): Record<OrderStatus, number> {
-  const counts: Record<OrderStatus, number> = {
-    NEW: 0,
-    CONFIRMED: 0,
-    DELIVERED: 0,
-    CANCELLED: 0,
-  }
-
-  for (const order of orders) {
-    counts[order.status] += 1
-  }
-
-  return counts
-}

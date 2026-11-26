@@ -3,7 +3,7 @@ import { cn } from "@workspace/ui/lib/utils"
 import { Phone } from "lucide-react"
 
 import { CHANNEL_ICONS } from "@/components/orders/channel-chip"
-import type { OrderDetail } from "@/lib/order-details"
+import { customerInitial, type OrderDetail } from "@/lib/order-details"
 import {
   CHANNEL_BG,
   CHANNELS,
@@ -39,26 +39,21 @@ export function CustomerCard({ order }: { order: OrderDetail }) {
           ဝယ်သူ{" "}
           <span className="font-normal text-muted-foreground">• Customer</span>
         </h2>
-        {order.isVip ? (
-          <span className="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-bold text-primary">
-            VIP • {order.priorOrderCount} orders
-          </span>
-        ) : (
-          <span className="text-[11px] text-muted-foreground">
-            {order.priorOrderCount} orders
-          </span>
-        )}
+        <span className="text-[11px] text-muted-foreground">
+          {order.priorOrderCount === 1
+            ? "1 order"
+            : `${order.priorOrderCount} orders`}
+        </span>
       </div>
 
       <div className="flex items-center gap-3">
         <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-secondary text-base font-bold text-primary">
-          {order.customerInitial}
+          {customerInitial(order.customerName)}
         </span>
         <div className="min-w-0">
           <div className="font-body text-sm leading-[1.7] font-bold text-foreground">
             {order.customerName}
           </div>
-          <div className="text-xs text-muted-foreground">{order.address}</div>
         </div>
       </div>
 

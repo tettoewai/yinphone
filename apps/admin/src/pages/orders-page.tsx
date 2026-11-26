@@ -1,6 +1,7 @@
 import { Button } from "@workspace/ui/components/button"
+import { cn } from "@workspace/ui/lib/utils"
 import { Plus } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 
 import { AdminPageHeader } from "@/components/admin-page-header"
 import { OrderFilters } from "@/components/orders/order-filters"
@@ -9,30 +10,34 @@ import { OrdersMobileList } from "@/components/orders/orders-mobile-list"
 import { OrdersPagination } from "@/components/orders/orders-pagination"
 import { OrdersTable } from "@/components/orders/orders-table"
 import { StatusFilterPills } from "@/components/orders/status-filter-pills"
+import { TableSkeleton } from "@/components/states/dashboard-skeleton"
+import { RequestError } from "@/components/states/request-error"
+import { useOrderList } from "@/hooks/use-orders"
+import { ApiError } from "@/lib/api"
 import {
   DEFAULT_PAGE_SIZE,
-  filterOrders,
-  statusCounts,
+  toOrderSummary,
   type ChannelSlug,
   type DateRangeKey,
   type OrderStatus,
   type PageSize,
 } from "@/lib/orders"
-import { ORDERS_GENERATED_AT, ORDERS_MOCK } from "@/lib/orders-mock"
-import { paginate, pageCountFor } from "@/lib/paging"
+import { pageCountFor } from "@/lib/paging"
+
+const EMPTY_COUNTS: Record<OrderStatus, number> = {
+  NEW: 0,
+  CONFIRMED: 0,
+  DELIVERED: 0,
+  CANCELLED: 0,
+}
 
 /**
  * The orders list (`/orders`).
  *
- * Every row comes from `orders-mock.ts` — there is no `GET /api/orders` yet.
- * Filtering, counting and paging happen in the browser for the same reason:
- * 24 rows fit in one response, and doing it here keeps the interaction instant
- * while the endpoint is designed. When it lands, replace the `ORDERS_MOCK`
- * reference and move the three helpers in `lib/orders.ts` to the query string.
- *
- * Filtering is applied in a deliberate order — search, channel and range first,
- * then the status counts, then the status filter, then paging — so a pill's
- * count always describes what selecting it would show.
+ * Filtering, counting and paging come from `GET /api/admin/orders`: changing
+ * any facet refetches, and the status pill counts are measured before the
+ * status filter, so they never collapse to the selected status. The search box
+ * is debounced in the hook; everything else applies immediately.
  */
 export function OrdersPage() {
   const [query, setQuery] = useState("")
@@ -42,29 +47,28 @@ export function OrdersPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE)
 
-  // `ORDERS_GENERATED_AT` is the instant the mock rows were stamped against, so
-  // "Today" and "Last 7 days" agree with the data for the life of the session.
-  const inScope = useMemo(
-    () =>
-      filterOrders(ORDERS_MOCK, { query, channel, range }, ORDERS_GENERATED_AT),
-    [query, channel, range]
-  )
+  const {
+    page: list,
+    error,
+    loading,
+    refreshing,
+    reload,
+  } = useOrderList({
+    q: query,
+    channel,
+    status,
+    range,
+    page,
+    pageSize,
+  })
 
-  const counts = useMemo(() => statusCounts(inScope), [inScope])
+  const total = list?.total ?? 0
+  const counts = list?.counts ?? EMPTY_COUNTS
+  const pageCount = pageCountFor(total, pageSize)
 
-  const visible = useMemo(
-    () =>
-      status === "all"
-        ? inScope
-        : inScope.filter((order) => order.status === status),
-    [inScope, status]
-  )
-
-  const pageCount = pageCountFor(visible.length, pageSize)
-  // A filter can leave the page pointer past the end; clamping keeps the footer
-  // and the visible rows in agreement without a state-syncing effect.
-  const currentPage = Math.min(page, pageCount)
-  const rows = paginate(visible, currentPage, pageSize)
+  const rows = (list?.items ?? []).map(toOrderSummary)
+  const otherFiltersTotal =
+    counts.NEW + counts.CONFIRMED + counts.DELIVERED + counts.CANCELLED
 
   function changeQuery(value: string) {
     setQuery(value)
@@ -91,6 +95,11 @@ export function OrdersPage() {
     setPage(1)
   }
 
+  /** Stay inside the pages the current result actually has. */
+  function changePage(value: number) {
+    setPage(Math.min(Math.max(1, value), pageCount))
+  }
+
   function clearFilters() {
     setQuery("")
     setChannel("all")
@@ -103,7 +112,7 @@ export function OrdersPage() {
     <>
       <AdminPageHeader
         title="မှာယူမှုများ"
-        subtitle={`Orders • ${ORDERS_MOCK.length} orders • Asia/Yangon`}
+        subtitle={`Orders • ${total} orders • Asia/Yangon`}
         actions={
           <Button
             disabled
@@ -127,16 +136,29 @@ export function OrdersPage() {
         >
           <StatusFilterPills
             value={status}
-            total={inScope.length}
+            total={otherFiltersTotal}
             counts={counts}
             onChange={changeStatus}
           />
         </OrderFilters>
 
-        {visible.length === 0 ? (
+        {error ? (
+          <RequestError
+            detail={error instanceof ApiError ? error.message : undefined}
+            onRetry={reload}
+          />
+        ) : loading ? (
+          <TableSkeleton rows={6} className="rounded-lg" />
+        ) : rows.length === 0 ? (
           <OrderListEmpty onClear={clearFilters} />
         ) : (
-          <section className="overflow-hidden rounded-lg border border-border bg-card">
+          <section
+            aria-busy={refreshing}
+            className={cn(
+              "overflow-hidden rounded-lg border border-border bg-card transition-opacity",
+              refreshing && "opacity-60"
+            )}
+          >
             <div className="hidden md:block">
               <OrdersTable orders={rows} />
             </div>
@@ -144,11 +166,11 @@ export function OrdersPage() {
               <OrdersMobileList orders={rows} />
             </div>
             <OrdersPagination
-              page={currentPage}
+              page={page}
               pageSize={pageSize}
-              total={visible.length}
+              total={total}
               pageCount={pageCount}
-              onPageChange={setPage}
+              onPageChange={changePage}
               onPageSizeChange={changePageSize}
             />
           </section>
