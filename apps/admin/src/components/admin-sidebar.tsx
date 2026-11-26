@@ -8,9 +8,11 @@ type AdminSidebarProps = {
   className?: string
   /** Called after a nav link is followed, e.g. to close the mobile drawer. */
   onNavigate?: () => void
+  /** Live NEW-order count for the orders chip; `undefined` hides the chip. */
+  pendingOrders?: number
 }
 
-function NavItemBody({ item }: { item: AdminNavItem }) {
+function NavItemBody({ item, badge }: { item: AdminNavItem; badge?: number }) {
   const Icon = item.icon
 
   return (
@@ -24,9 +26,9 @@ function NavItemBody({ item }: { item: AdminNavItem }) {
           {item.labelEn}
         </span>
       </span>
-      {item.badge ? (
+      {badge ? (
         <span className="flex h-6 min-w-6 items-center justify-center rounded-sm bg-accent px-1.5 text-xs font-bold text-accent-foreground">
-          {item.badge}
+          {badge}
         </span>
       ) : null}
     </>
@@ -37,7 +39,15 @@ function NavItemBody({ item }: { item: AdminNavItem }) {
  * The shop's navigation rail from the design mock. Below `lg` it is only
  * mounted inside the layout's drawer, so it always renders at full width.
  */
-export function AdminSidebar({ className, onNavigate }: AdminSidebarProps) {
+export function AdminSidebar({
+  className,
+  onNavigate,
+  pendingOrders,
+}: AdminSidebarProps) {
+  function badgeFor(item: AdminNavItem) {
+    return item.key === "orders" ? pendingOrders : item.badge
+  }
+
   return (
     <div
       className={cn("flex h-svh w-60 shrink-0 flex-col bg-primary", className)}
@@ -70,7 +80,7 @@ export function AdminSidebar({ className, onNavigate }: AdminSidebarProps) {
                 title="Coming soon"
                 className="flex min-h-12 cursor-not-allowed items-center gap-3 rounded-md px-3 text-left text-primary-foreground/80"
               >
-                <NavItemBody item={item} />
+                <NavItemBody item={item} badge={badgeFor(item)} />
               </button>
             )
           }
@@ -90,7 +100,7 @@ export function AdminSidebar({ className, onNavigate }: AdminSidebarProps) {
                 )
               }
             >
-              <NavItemBody item={item} />
+              <NavItemBody item={item} badge={badgeFor(item)} />
             </NavLink>
           )
         })}

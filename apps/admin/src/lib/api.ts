@@ -458,3 +458,63 @@ export const categoriesApi = {
     })
   },
 }
+
+/** One column of `GET /api/admin/dashboard`'s seven-day chart. */
+export type AdminDashboardDay = {
+  /** `YYYY-MM-DD` in Asia/Yangon. */
+  date: string
+  /** Day-of-month label shown under the bar. */
+  day: string
+  amountMmk: number
+}
+
+/** One slice of the dashboard's channel split. */
+export type AdminDashboardChannel = {
+  slug: string
+  nameMy: string
+  nameEn: string
+  orders: number
+  /** Rounded share of the window's orders, 0–100. */
+  sharePct: number
+}
+
+/**
+ * Today's headline figures. `salesOrders` and `salesMmk` exclude cancelled
+ * orders, so "sales" means takings.
+ */
+export type AdminDashboardToday = {
+  orders: number
+  salesOrders: number
+  salesMmk: number
+  ordersYesterday: number
+  salesMmkYesterday: number
+}
+
+/** One row of the dashboard's recent-orders table. */
+export type AdminDashboardRecentOrder = {
+  id: string
+  code: string
+  customerName: string
+  totalMmk: number
+  /** Channel slug, e.g. `messenger`. */
+  channel: string
+  status: AdminOrderStatus
+  createdAt: string
+}
+
+export type AdminDashboardOverview = {
+  today: AdminDashboardToday
+  /** All-time NEW and CONFIRMED counts; drives the KPI cards and the nav chip. */
+  pending: { new: number; confirmed: number }
+  salesLast7Days: AdminDashboardDay[]
+  channels: AdminDashboardChannel[]
+  recentOrders: AdminDashboardRecentOrder[]
+  /** Days covered by the chart and the channel split. */
+  windowDays: number
+}
+
+export const dashboardApi = {
+  overview(signal?: AbortSignal) {
+    return request<AdminDashboardOverview>("/admin/dashboard", { signal })
+  },
+}

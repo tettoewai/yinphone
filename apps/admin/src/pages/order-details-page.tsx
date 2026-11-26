@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 
 import { useSession } from "@/auth/session-context"
+import { useDashboard } from "@/components/dashboard/dashboard-context"
 import { FormAlert } from "@/components/form-alert"
 import { ChannelCard } from "@/components/order-details/channel-card"
 import { CustomerCard } from "@/components/order-details/customer-card"
@@ -100,6 +101,8 @@ type Change = {
 
 function OrderDetailView({ order }: { order: OrderDetail }) {
   const { user } = useSession()
+  // Confirming or cancelling changes the NEW count the sidebar chip shows.
+  const { reload: reloadDashboard } = useDashboard()
   const [status, setStatus] = useState<OrderStatus>(order.status)
   const [activity, setActivity] = useState<readonly ActivityEntry[]>(
     order.activity
@@ -128,6 +131,7 @@ function OrderDetailView({ order }: { order: OrderDetail }) {
         ...entries,
         statusChangeEntry({ status: next, actor, role, reason }),
       ])
+      reloadDashboard()
     } catch (error) {
       setFailure(messageFor(error))
     } finally {
@@ -150,10 +154,11 @@ function OrderDetailView({ order }: { order: OrderDetail }) {
         setStatus(previous.status)
         setActivity(previous.activity)
         setChange(null)
+        reloadDashboard()
       })
       .catch((error: unknown) => setFailure(messageFor(error)))
       .finally(() => setPending(false))
-  }, [change, order.code, pending])
+  }, [change, order.code, pending, reloadDashboard])
 
   function advance() {
     const next = NEXT_ACTION[status]

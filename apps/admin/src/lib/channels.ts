@@ -33,9 +33,9 @@ export type ChannelMessage = {
 }
 
 /**
- * The design's rows. Counts mirror `CHANNEL_SHARES` on the dashboard and
- * Telegram starts switched off, which is why the card shows "past orders kept"
- * and the storefront preview labels it "off".
+ * The design's rows. The counts are sample figures, not the dashboard's
+ * channel split, and Telegram starts switched off — which is why the card shows
+ * "past orders kept" and the storefront preview labels it "off".
  */
 export const CHANNELS_MOCK: readonly OrderChannel[] = [
   {

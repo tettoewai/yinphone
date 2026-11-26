@@ -21,8 +21,9 @@ export type AdminNavItem = {
    */
   to?: string
   /**
-   * Rendered as the gold count chip. The orders chip returns with the
-   * dashboard's stats endpoint, which can supply a real pending count.
+   * Rendered as the gold count chip. The orders item's chip is the live NEW
+   * count from the dashboard overview, passed in by `AdminSidebar`; anything
+   * else here is a static label.
    */
   badge?: number
 }

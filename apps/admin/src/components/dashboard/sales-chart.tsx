@@ -1,17 +1,18 @@
 import { cn } from "@workspace/ui/lib/utils"
 
+import { salesAxisMax, type DailySales } from "@/lib/dashboard"
 import { formatMmk, formatMmkCompact } from "@/lib/format"
-import { SALES_AXIS_MMK, SALES_LAST_7_DAYS } from "@/lib/dashboard-mock"
 
 /**
  * Seven-day sales column chart. Bars are plain divs rather than a charting
  * library: the design only needs single-series columns, and the numbers are
  * printed above each bar, so the native `title` covers "hover for value".
  */
-export function SalesChart() {
-  const total = SALES_LAST_7_DAYS.reduce((sum, day) => sum + day.amountMmk, 0)
-  // The mock accents the best day of the week rather than the newest one.
-  const peakMmk = Math.max(...SALES_LAST_7_DAYS.map((day) => day.amountMmk))
+export function SalesChart({ days }: { days: readonly DailySales[] }) {
+  const total = days.reduce((sum, day) => sum + day.amountMmk, 0)
+  // The best day of the window is the one that carries the accent colour.
+  const peakMmk = Math.max(0, ...days.map((day) => day.amountMmk))
+  const axisMmk = salesAxisMax(peakMmk)
 
   return (
     <section className="rounded-lg border border-border bg-card p-5 lg:col-span-3">
@@ -33,17 +34,17 @@ export function SalesChart() {
         aria-label="Sales for the last 7 days"
         className="flex h-40 items-end gap-2.5 pt-3"
       >
-        {SALES_LAST_7_DAYS.map((day) => {
-          const isPeak = day.amountMmk === peakMmk
+        {days.map((day) => {
+          const isPeak = peakMmk > 0 && day.amountMmk === peakMmk
           // Clamped so a value above the axis can never overflow the card.
           const heightPct = Math.min(
             100,
-            Math.round((day.amountMmk / SALES_AXIS_MMK) * 100)
+            Math.round((day.amountMmk / axisMmk) * 100)
           )
 
           return (
             <li
-              key={day.day}
+              key={day.date}
               className="flex h-full flex-1 flex-col items-center gap-1.5"
             >
               <span className="text-[11px] font-bold text-foreground tabular-nums">

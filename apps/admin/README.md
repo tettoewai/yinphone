@@ -36,7 +36,7 @@ src/App.tsx         Route table and the auth guards
 src/pages/          Sign-in, password reset, dashboard, orders, products, categories
 src/auth/           Session context, provider and route guards
 src/components/     Admin shell, dashboard panels, orders, products, categories, fields
-src/lib/            API client, order/product/category types, paging, formatters
+src/lib/            API client, order/product/category/dashboard types, paging, formatters
 vite.config.ts      React, React Compiler, Tailwind, `@/` and the `/api` proxy
 ```
 
@@ -94,14 +94,23 @@ the `font-body` and `font-heading` utilities.
 (Geist). Without it the `font-body` stack ends in an undefined variable, and the
 whole `font-family` declaration is dropped at computed-value time.
 
-## Orders, products and categories
+## Dashboard, orders, products and categories
+
+`/dashboard` is wired to `GET /api/admin/dashboard`: today's orders and takings,
+the all-time NEW/CONFIRMED counts, the seven-day sales chart, the channel split
+and the five most recent orders all come from that one payload. `DashboardProvider`
+(`src/components/dashboard/dashboard-provider.tsx`) fetches it once for the
+signed-in shell, so the sidebar's gold orders chip and the dashboard page read
+the same request. Cancelled orders are excluded from money figures but still
+count in the channel split.
 
 `/orders`, `/orders/:code`, `/products` and `/categories` are wired to the admin
 API (`GET /api/admin/orders`, `GET /api/admin/products`,
 `GET /api/admin/categories`). Filtering, counting, sorting and paging run on the
 server; the screens keep the previous page on screen while a newer request is in
-flight (`src/hooks/use-orders.ts`, `use-products.ts`, `use-categories.ts`). The
-search box is debounced by 250 ms and every request is abortable.
+flight (`src/hooks/use-orders.ts`, `use-products.ts`, `use-categories.ts`,
+`use-dashboard.ts`). The search box is debounced by 250 ms and every request is
+abortable.
 
 Writes go straight to the API: order status changes (`PATCH .../status`), a
 product's hide/show toggle and visibility switch (`PATCH .../visibility`),

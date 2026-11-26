@@ -108,6 +108,14 @@ export function formatOrderPlaced(value: string | Date) {
   return `${dayMonthYearFormatter.format(date)}, ${timeFormatter.format(date)}`
 }
 
+/** "19 Nov" — a bare Yangon day and month, e.g. older dashboard rows. */
+export function formatDayMonth(value: string | Date) {
+  const date = toDate(value)
+  if (!date) return "—"
+
+  return dayMonthFormatter.format(date)
+}
+
 /**
  * "10:24 AM" — a bare Yangon clock time, e.g. the categories screen's
  * "Saved in this tab" chip.

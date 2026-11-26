@@ -6,16 +6,12 @@ import type {
 } from '../../generated/prisma/models.js';
 import type { OrderStatus } from '../../generated/prisma/enums.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { DAY_MS, startOfYangonDay } from '../yangon-time.js';
 import type {
   ListAdminOrdersQuery,
   OrderDateRange,
 } from './dto/list-orders.query.js';
 import type { UpdateOrderStatusInput } from './dto/update-status.schema.js';
-
-const DAY_MS = 86_400_000;
-
-/** Asia/Yangon is a fixed UTC+6:30 with no daylight saving, so a constant works. */
-const YANGON_OFFSET_MS = (6 * 60 + 30) * 60_000;
 
 /**
  * Preset widths in days, mirroring `apps/admin/src/lib/orders.ts`: `1` means
@@ -28,19 +24,13 @@ const RANGE_DAYS: Record<OrderDateRange, number | null> = {
   all: null,
 };
 
-/** The instant Asia/Yangon's calendar day containing `now` began. */
-function startOfYangonDay(now: Date) {
-  const shifted = now.getTime() + YANGON_OFFSET_MS;
-  return Math.floor(shifted / DAY_MS) * DAY_MS - YANGON_OFFSET_MS;
-}
-
 /** Lower bound for a preset, or `null` for "All time". */
 function rangeStart(range: OrderDateRange, now: Date): Date | null {
   const days = RANGE_DAYS[range];
 
   if (days === null) return null;
 
-  return new Date(startOfYangonDay(now) - (days - 1) * DAY_MS);
+  return new Date(startOfYangonDay(now).getTime() - (days - 1) * DAY_MS);
 }
 
 /**

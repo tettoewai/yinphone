@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 
 import { OrderStatusBadge } from "@/components/orders/order-status-badge"
-import { SHOP_URL, type RecentOrder } from "@/lib/dashboard-mock"
+import { SHOP_URL, type RecentOrder } from "@/lib/dashboard"
 import { formatMmk } from "@/lib/format"
 import { ROUTES } from "@/lib/routes"
 

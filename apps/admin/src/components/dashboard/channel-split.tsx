@@ -1,10 +1,6 @@
 import { cn } from "@workspace/ui/lib/utils"
 
-import {
-  CHANNEL_SHARES,
-  type ChannelShare,
-  type ChannelSlug,
-} from "@/lib/dashboard-mock"
+import type { ChannelShare } from "@/lib/dashboard"
 
 /**
  * Radius chosen so the circumference is 100 in the viewBox, which lets the
@@ -13,39 +9,44 @@ import {
 const RADIUS = 15.9155
 const STROKE_WIDTH = 7
 
-const SEGMENT_STROKE: Record<ChannelSlug, string> = {
+/**
+ * Known channels get their brand colour; a channel added later (the channels
+ * screen lands in a later step) still renders, in muted grey.
+ */
+const SEGMENT_STROKE: Record<string, string> = {
   messenger: "text-messenger",
   viber: "text-viber",
   telegram: "text-telegram",
 }
 
-const SEGMENT_SWATCH: Record<ChannelSlug, string> = {
+const SEGMENT_SWATCH: Record<string, string> = {
   messenger: "bg-messenger",
   viber: "bg-viber",
   telegram: "bg-telegram",
 }
 
 /**
- * A dash offset of 25 puts the first arc at 12 o'clock; every later arc starts
- * where the ones before it ended, so the shares stack clockwise from the top.
- */
-const SEGMENTS = CHANNEL_SHARES.map((channel, index) => ({
-  channel,
-  dashOffset:
-    25 -
-    CHANNEL_SHARES.slice(0, index).reduce(
-      (sum, previous) => sum + previous.sharePct,
-      0
-    ),
-}))
-
-/**
  * Which chat channel the week's orders came through. The mock draws the ring
  * with stacked CSS borders (two colours only); an SVG donut renders all three
  * shares without that limitation and keeps the ring round.
  */
-export function ChannelSplit() {
-  const total = CHANNEL_SHARES.reduce((sum, channel) => sum + channel.orders, 0)
+export function ChannelSplit({
+  channels,
+}: {
+  channels: readonly ChannelShare[]
+}) {
+  const total = channels.reduce((sum, channel) => sum + channel.orders, 0)
+
+  // A dash offset of 25 puts the first arc at 12 o'clock; every later arc starts
+  // where the ones before it ended, so the shares stack clockwise from the top.
+  const segments = channels.map((channel, index) => ({
+    channel,
+    dashOffset:
+      25 -
+      channels
+        .slice(0, index)
+        .reduce((sum, previous) => sum + previous.sharePct, 0),
+  }))
 
   function labelFor(channel: ChannelShare) {
     return `${channel.name} ${channel.orders} orders`
@@ -66,9 +67,9 @@ export function ChannelSplit() {
             viewBox="0 0 42 42"
             className="size-full"
             role="img"
-            aria-label={`Orders by channel this week: ${CHANNEL_SHARES.map(labelFor).join(", ")}`}
+            aria-label={`Orders by channel this week: ${channels.map(labelFor).join(", ")}`}
           >
-            {SEGMENTS.map(({ channel, dashOffset }) => (
+            {segments.map(({ channel, dashOffset }) => (
               <circle
                 key={channel.slug}
                 cx="21"
@@ -79,7 +80,7 @@ export function ChannelSplit() {
                 strokeWidth={STROKE_WIDTH}
                 strokeDasharray={`${channel.sharePct} ${100 - channel.sharePct}`}
                 strokeDashoffset={dashOffset}
-                className={SEGMENT_STROKE[channel.slug]}
+                className={SEGMENT_STROKE[channel.slug] ?? "text-muted"}
               />
             ))}
           </svg>
@@ -92,12 +93,12 @@ export function ChannelSplit() {
         </div>
 
         <ul className="flex min-w-[140px] flex-1 flex-col gap-2.5">
-          {CHANNEL_SHARES.map((channel) => (
+          {channels.map((channel) => (
             <li key={channel.slug} className="flex items-center gap-2 text-sm">
               <span
                 className={cn(
                   "inline-block size-3 shrink-0 rounded-sm",
-                  SEGMENT_SWATCH[channel.slug]
+                  SEGMENT_SWATCH[channel.slug] ?? "bg-muted"
                 )}
               />
               <span className="flex-1 font-semibold text-foreground">

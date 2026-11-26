@@ -19,7 +19,7 @@ import {
   enabledLinkIssues,
   type OrderChannel,
 } from "@/lib/channels"
-import { SHOP_URL } from "@/lib/dashboard-mock"
+import { SHOP_URL } from "@/lib/dashboard"
 import { formatClockTime } from "@/lib/yangon-time"
 
 /**

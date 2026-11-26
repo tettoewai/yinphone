@@ -135,8 +135,8 @@ Responds with `{ items, total, limit, offset }`.
 
 ## Admin API (`/api/admin`)
 
-The dashboard, channels and staff routes are still setup scaffolding and respond
-`501 Not Implemented`. Orders, products and categories are implemented. All
+The channels and staff routes are still setup scaffolding and respond `501 Not
+Implemented`. Dashboard, orders, products and categories are implemented. All
 routes require a session (`AdminAuthGuard` + `RolesGuard`); rows marked OWNER
 additionally carry `@Roles('OWNER')`.
 
@@ -169,6 +169,29 @@ Anonymous requests get `401 NOT_SIGNED_IN`; a signed-in admin without the
 required role gets `403 FORBIDDEN`. The guard wiring is covered by
 `src/admin/admin-guards.spec.ts` (boots the app with a mocked database) and by
 the e2e suite against a real one.
+
+### `GET /api/admin/dashboard`
+
+Everything the dashboard screen renders, in one response:
+
+- `today` — `orders`, `salesOrders`, `salesMmk`, `ordersYesterday` and
+  `salesMmkYesterday`. `salesOrders` and `salesMmk` exclude `CANCELLED` orders,
+  so "sales" means takings. Calendar days are Asia/Yangon (UTC+6:30).
+- `pending` — all-time `new` and `confirmed` counts. The gold KPI card and the
+  sidebar's orders chip read these.
+- `salesLast7Days` — seven entries, oldest first, each `{ date, day, amountMmk }`
+  where `date` is a Yangon `YYYY-MM-DD` and `day` its day-of-month label. Money
+  excludes cancelled orders.
+- `channels` — every channel with `{ slug, nameMy, nameEn, orders, sharePct }`
+  over the same seven days. `sharePct` is rounded; cancelled orders count here
+  because they still arrived through a channel.
+- `recentOrders` — the five newest orders, each `{ id, code, customerName,
+totalMmk, channel, status, createdAt }` with `channel` as a slug.
+- `windowDays` — `7`, the span the chart and the split cover.
+
+A week of rows is aggregated in TypeScript rather than with Prisma's `groupBy`,
+whose typings are unreliable in this codebase. The counts and the reads run in
+one `$transaction`.
 
 ### `GET /api/admin/orders`
 

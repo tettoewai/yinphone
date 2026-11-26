@@ -4,13 +4,26 @@ import { Outlet } from "react-router-dom"
 
 import { AdminSidebar } from "@/components/admin-sidebar"
 import { AdminTopbar } from "@/components/admin-topbar"
+import { useDashboard } from "@/components/dashboard/dashboard-context"
+import { DashboardProvider } from "@/components/dashboard/dashboard-provider"
 
 /**
  * Chrome for every signed-in admin screen: the primary rail on desktop, the
  * same rail in a drawer below `lg`, and the breadcrumb bar on top.
  */
 export function AdminLayout() {
+  return (
+    <DashboardProvider>
+      <AdminLayoutChrome />
+    </DashboardProvider>
+  )
+}
+
+function AdminLayoutChrome() {
   const [navOpen, setNavOpen] = useState(false)
+  const { overview } = useDashboard()
+  // A zero count hides the chip rather than printing "0".
+  const pendingOrders = overview?.pending.new || undefined
 
   // A drawer left open while the viewport grows would keep the body locked
   // behind a rail that is already visible, so close it at the `lg` breakpoint.
@@ -45,7 +58,7 @@ export function AdminLayout() {
   return (
     <div className="flex min-h-svh bg-background font-body">
       <div className="sticky top-0 hidden h-svh shrink-0 lg:block">
-        <AdminSidebar />
+        <AdminSidebar pendingOrders={pendingOrders} />
       </div>
 
       {navOpen ? (
@@ -62,7 +75,10 @@ export function AdminLayout() {
             aria-label="Admin navigation"
             className="relative flex h-full w-60"
           >
-            <AdminSidebar onNavigate={() => setNavOpen(false)} />
+            <AdminSidebar
+              pendingOrders={pendingOrders}
+              onNavigate={() => setNavOpen(false)}
+            />
             <button
               type="button"
               autoFocus

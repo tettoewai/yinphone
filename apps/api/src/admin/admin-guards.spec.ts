@@ -47,6 +47,10 @@ const prismaStub = {
     findUnique: async () => null,
     update: async () => ({}),
   },
+  // The dashboard reads the channel list for its split.
+  channel: {
+    findMany: async () => [],
+  },
 };
 
 describe('admin guard wiring', () => {
