@@ -1,5 +1,36 @@
 # YinPhone Boutique
 
+A bilingual (Burmese / English) storefront and back office for a small clothing
+boutique: customers browse a catalogue and order over chat, staff record those
+orders, track stock and see the week's sales in one dashboard.
+
+## Live demo
+
+| Surface    | URL                               |
+| ---------- | --------------------------------- |
+| Admin      | https://yinphone-admin.vercel.app |
+| Storefront | https://yinphone.vercel.app       |
+
+The admin sign-in screen carries a one-tap demo account
+(`staff@yinphone.shop` / `lumi1234`). It is an `OWNER`, so every screen works,
+Settings and Channels included, and the seeded database holds a week of demo
+orders so the dashboard chart is never empty. The demo is writable on purpose:
+redeploying the API reseeds it (see [`DEPLOYMENT.md`](DEPLOYMENT.md)).
+
+## Screenshots
+
+| Admin dashboard                                          | Orders                                       |
+| -------------------------------------------------------- | -------------------------------------------- |
+| ![Admin dashboard](docs/screenshots/admin-dashboard.png) | ![Orders](docs/screenshots/admin-orders.png) |
+
+| Products                                         | Storefront                                          |
+| ------------------------------------------------ | --------------------------------------------------- |
+| ![Products](docs/screenshots/admin-products.png) | ![Storefront](docs/screenshots/storefront-home.png) |
+
+| Sign in with the demo account                  |
+| ---------------------------------------------- |
+| ![Sign in](docs/screenshots/admin-sign-in.png) |
+
 Turborepo monorepo with a Next.js storefront, a Vite + React admin dashboard, a
 NestJS API and shared packages.
 
