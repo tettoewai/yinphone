@@ -1,8 +1,9 @@
 # YinPhone Boutique
 
 A bilingual (Burmese / English) storefront and back office for a small clothing
-boutique: customers browse a catalogue and order over chat, staff record those
-orders, track stock and see the week's sales in one dashboard.
+boutique: customers browse a catalogue and place an order in seconds — no login,
+no payment, we confirm on Messenger — and staff record those orders, track stock
+and see the week's sales in one dashboard.
 
 ## Live demo
 

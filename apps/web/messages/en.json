@@ -3,7 +3,7 @@
     "siteName": "YinPhone Boutique Yangon",
     "home": {
       "title": "YinPhone — Cotton wear from Yangon",
-      "description": "Everyday cotton wear and seasonal fashion from Yangon. Order easily by chat on Messenger, Viber or Telegram."
+      "description": "Everyday cotton wear and seasonal fashion from Yangon. Order online in seconds — we confirm on Messenger, Viber or Telegram."
     },
     "catalog": {
       "title": "Catalog",
@@ -48,7 +48,7 @@
     "copied": "Copied",
     "seeAll": "See all",
     "browseCollection": "Browse collection",
-    "chatOnly": "No payment • No login • Chat only",
+    "chatOnly": "No payment • No login • Order in seconds",
     "saveToFavourites": "Save to favourites",
     "removeFromFavourites": "Remove from favourites",
     "shareProduct": "Share product",
@@ -78,7 +78,7 @@
   "Hero": {
     "badge": "New season • Yangon",
     "title": "Seasonal fashion",
-    "subtitle": "Seasonal fashion, delivered by chat",
+    "subtitle": "Seasonal fashion, delivered in Yangon",
     "shopNow": "Shop now",
     "imageAlt": "Young woman in a light beige cotton dress in a bright Yangon shop doorway"
   },
@@ -94,7 +94,7 @@
       "cod": "Cash on delivery in Yangon",
       "exchange": "Exchange within 7 days"
     },
-    "footerTagline": "Everyday cotton wear and seasonal fashion — order in a chat."
+    "footerTagline": "Everyday cotton wear and seasonal fashion — order in seconds."
   },
   "Catalog": {
     "allItems": "All items",
@@ -151,7 +151,7 @@
     "readLess": "Read less",
     "cod": "COD Yangon",
     "exchange": "7-day exchange",
-    "orderHint": "Ordering is easy — pick a size and colour, then tap Order. Your order will be ready in the chat.",
+    "orderHint": "Ordering is easy — pick a size and colour, then tap Order. We'll confirm it on your chosen chat app.",
     "related": "You might also like",
     "backToCatalog": "Back to catalog",
     "sizeGuide": {
@@ -168,7 +168,7 @@
   },
   "Order": {
     "title": "Order summary",
-    "subtitle": "Pick a chat app and send",
+    "subtitle": "Review and place your order",
     "total": "Total",
     "maxQty": "Max {count, number} per order",
     "required": "Your details",
@@ -182,11 +182,14 @@
       "phoneFormat": "Enter a valid phone number",
       "place": "Could not place the order. Please try again."
     },
-    "ready": "Order ready",
-    "readyHint": "Open the chat and send your order.",
+    "placed": "Order placed",
+    "placedHint": "We'll confirm on {channel} shortly.",
     "lineLabel": "Order",
-    "messengerCta": "Continue in Messenger",
-    "pasteHint": "Your order is copied for Messenger and Viber — just paste it. Telegram fills it in automatically.",
+    "channelLabel": "How should we reach you?",
+    "placeOrder": "Place order",
+    "placing": "Placing order…",
+    "openInChat": "Open {channel}",
+    "noPayment": "No payment now — pay on delivery.",
     "copyDetails": "Copy order details",
     "detailsCopied": "Order details copied",
     "shopHours": "We reply within 1 hour during shop hours (10:00–20:00).",
@@ -208,7 +211,7 @@
       "subtitle": "About YinPhone"
     },
     "hero": {
-      "tags": "Since 2019 • Yangon • Chat-first shop",
+      "tags": "Since 2019 • Yangon • Order in seconds",
       "imageAlt": "YinPhone boutique shop front with cotton dresses on display in morning light"
     },
     "heading": "A shop that loves cotton",

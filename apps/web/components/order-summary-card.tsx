@@ -6,17 +6,24 @@ import {
   ClipboardList,
   Clock,
   Copy,
+  Loader2,
   MessageCircle,
   Minus,
   Phone,
   Plus,
   Send,
+  ShoppingBag,
   X,
+  type LucideIcon,
 } from "lucide-react"
 import Image from "next/image"
 import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@workspace/ui/components/toggle-group"
 import { cn } from "@workspace/ui/lib/utils"
 
 import {
@@ -32,6 +39,42 @@ import { createOrder } from "@/lib/api"
 import { channelSupportsPrefill, chatHref, type ChatChannel } from "@/lib/chat"
 import { formatDigits, formatPrice } from "@/lib/format"
 import { useClipboard } from "@/lib/use-clipboard"
+
+type ChannelOption = {
+  id: ChatChannel
+  label: string
+  icon: LucideIcon
+}
+
+/** Contact-preference choices. The order itself never leaves the app. */
+const CHANNELS: readonly ChannelOption[] = [
+  { id: "messenger", label: "Messenger", icon: MessageCircle },
+  { id: "viber", label: "Viber", icon: Phone },
+  { id: "telegram", label: "Telegram", icon: Send },
+]
+
+/** Brand colours only apply to the pressed segment. */
+const CHANNEL_ACTIVE: Record<ChatChannel, string> = {
+  messenger:
+    "aria-pressed:bg-messenger aria-pressed:text-primary-foreground aria-pressed:hover:bg-messenger aria-pressed:hover:text-primary-foreground",
+  viber:
+    "aria-pressed:bg-viber aria-pressed:text-white aria-pressed:hover:bg-viber aria-pressed:hover:text-white",
+  telegram:
+    "aria-pressed:bg-telegram aria-pressed:text-white aria-pressed:hover:bg-telegram aria-pressed:hover:text-white",
+}
+
+function ChannelIcon({
+  channel,
+  className,
+}: {
+  channel: ChatChannel
+  className?: string
+}) {
+  const Icon =
+    CHANNELS.find((option) => option.id === channel)?.icon ?? MessageCircle
+
+  return <Icon className={className} strokeWidth={2.53} />
+}
 
 type OrderSummaryCardProps = {
   /** Database id — what the orders API keys on. */
@@ -78,6 +121,7 @@ export default function OrderSummaryCard({
   const [qty, setQty] = useState(() => clampQty(initialQty, maxQty))
   const [customerName, setCustomerName] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
+  const [channel, setChannel] = useState<ChatChannel>("messenger")
   const [origin, setOrigin] = useState("")
   const [placedCode, setPlacedCode] = useState<string | null>(null)
   const [isPlacing, setIsPlacing] = useState(false)
@@ -119,6 +163,8 @@ export default function OrderSummaryCard({
   const orderLine = buildOrderLine(draft, locale, t("lineLabel"))
   const productHref = `/products/${productSlug}`
   const productUrl = origin ? `${origin}${productHref}` : productHref
+  const channelLabel =
+    CHANNELS.find((option) => option.id === channel)?.label ?? "Messenger"
 
   const isPlaced = Boolean(placedCode)
   const isLocked = isPlaced || isPlacing
@@ -132,10 +178,11 @@ export default function OrderSummaryCard({
   })
 
   /**
-   * Registers the order so the shop has it — with its real code — before the
-   * chat opens. Prices are resolved by the API, never sent from this form.
+   * Registers the order with the shop. Prices are resolved by the API, never
+   * sent from this form. `channel` is only a contact preference — it drives the
+   * dashboard's channel split and how we confirm the order.
    */
-  async function placeOrder(channel: ChatChannel) {
+  async function placeOrder() {
     if (placedCode) return placedCode
 
     setIsPlacing(true)
@@ -167,44 +214,31 @@ export default function OrderSummaryCard({
     }
   }
 
-  async function handleChannelClick(channel: ChatChannel) {
-    if (isPlacing) return
+  async function handlePlaceOrder() {
+    if (isPlacing || placedCode) return
 
-    if (!isPlaced && (phoneFormatError || !name || !phone)) {
+    if (phoneFormatError || !name || !phone) {
       setShowErrors(true)
       return
     }
 
-    // Opened before the await so the browser still counts it as a click.
-    const pendingWindow = channel === "viber" ? null : window.open("", "_blank")
+    await placeOrder()
+  }
 
-    const code = placedCode ?? (await placeOrder(channel))
-
-    if (!code) {
-      pendingWindow?.close()
-      return
-    }
-
-    const finalMessage = buildOrderMessage(draft, {
-      code,
-      customerName: name || undefined,
-      customerPhone: phone || undefined,
-      productUrl,
-    })
+  /**
+   * Secondary action offered once the order exists: hand the same details to
+   * the chosen chat app so the customer can talk to the shop there.
+   */
+  function openChat() {
+    if (!placedCode) return
 
     // Telegram carries the text in the deep link; Messenger and Viber cannot,
     // so put the order on the clipboard for the customer to paste.
     if (!channelSupportsPrefill(channel)) {
-      void copy(finalMessage, channel)
+      void copy(message, channel)
     }
 
-    const href = chatHref(channel, finalMessage)
-
-    if (pendingWindow) {
-      pendingWindow.opener = null
-      pendingWindow.location.href = href
-      return
-    }
+    const href = chatHref(channel, message)
 
     if (channel === "viber") {
       window.location.href = href
@@ -391,10 +425,13 @@ export default function OrderSummaryCard({
         >
           <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
             <Check className="size-4 text-primary" strokeWidth={3.2} />
-            {t("ready")}
+            {t("placed")}
           </div>
-          <p className="pt-1 font-body text-xs leading-[1.7] text-secondary-foreground">
-            {placedCode} • {t("readyHint")}
+          <p className="pt-1 font-heading text-sm font-bold text-primary">
+            {placedCode}
+          </p>
+          <p className="pt-0.5 font-body text-xs leading-[1.7] text-secondary-foreground">
+            {t("placedHint", { channel: channelLabel })}
           </p>
         </div>
       ) : null}
@@ -435,63 +472,85 @@ export default function OrderSummaryCard({
       </div>
 
       <div className="flex flex-col gap-2 px-5 pt-3">
-        <a
-          href={chatHref("messenger", message)}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-disabled={isPlacing}
-          onClick={(event) => {
-            event.preventDefault()
-            void handleChannelClick("messenger")
-          }}
-          className={cn(
-            "flex min-h-[52px] w-full items-center justify-center gap-2 rounded-md bg-messenger text-[15px] font-bold text-primary-foreground",
-            isPlacing && "pointer-events-none opacity-50"
-          )}
-        >
-          <MessageCircle className="size-[19px]" strokeWidth={2.53} />
-          <span className="font-body leading-[1.7]">{t("messengerCta")}</span>
-          <ArrowUpRight className="size-4" strokeWidth={3} />
-        </a>
-
-        <div className="flex gap-2">
+        {isPlaced ? (
           <a
-            href={chatHref("viber", message)}
-            aria-disabled={isPlacing}
-            onClick={(event) => {
-              event.preventDefault()
-              void handleChannelClick("viber")
-            }}
-            className={cn(
-              "flex min-h-[48px] flex-1 items-center justify-center gap-1.5 rounded-md bg-viber text-sm font-bold text-white",
-              isPlacing && "pointer-events-none opacity-50"
-            )}
-          >
-            <Phone className="size-4" strokeWidth={3} />
-            Viber
-          </a>
-          <a
-            href={chatHref("telegram", message)}
+            href={chatHref(channel, message)}
             target="_blank"
             rel="noopener noreferrer"
-            aria-disabled={isPlacing}
             onClick={(event) => {
               event.preventDefault()
-              void handleChannelClick("telegram")
+              openChat()
             }}
-            className={cn(
-              "flex min-h-[48px] flex-1 items-center justify-center gap-1.5 rounded-md bg-telegram text-sm font-bold text-white",
-              isPlacing && "pointer-events-none opacity-50"
-            )}
+            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-md border border-border bg-card font-body text-sm leading-[1.7] font-bold text-foreground"
           >
-            <Send className="size-4" strokeWidth={3} />
-            Telegram
+            <ChannelIcon channel={channel} className="size-4" />
+            <span>{t("openInChat", { channel: channelLabel })}</span>
+            <ArrowUpRight className="size-4" strokeWidth={3} />
           </a>
-        </div>
+        ) : (
+          <>
+            <div className="text-sm font-semibold text-foreground">
+              {t("channelLabel")}
+            </div>
 
-        <p className="text-center font-body text-[11px] leading-[1.7] text-muted-foreground">
-          {t("pasteHint")}
-        </p>
+            <ToggleGroup
+              value={[channel]}
+              onValueChange={(value) => {
+                const next = value[0]
+
+                if (
+                  next === "messenger" ||
+                  next === "viber" ||
+                  next === "telegram"
+                ) {
+                  setChannel(next)
+                }
+              }}
+              disabled={isPlacing}
+              spacing={0}
+              orientation="horizontal"
+              aria-label={t("channelLabel")}
+              className="grid w-full grid-cols-3 overflow-hidden rounded-md border border-border bg-card"
+            >
+              {CHANNELS.map(({ id, label, icon: Icon }) => (
+                <ToggleGroupItem
+                  key={id}
+                  value={id}
+                  className={cn(
+                    "h-auto min-h-[48px] flex-1 flex-col gap-1 rounded-none border-l border-border px-2 py-1.5 text-[11px] font-bold text-muted-foreground first:border-l-0",
+                    CHANNEL_ACTIVE[id]
+                  )}
+                >
+                  <Icon className="size-4" strokeWidth={2.53} />
+                  <span className="font-body leading-none">{label}</span>
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+
+            <button
+              type="button"
+              onClick={() => void handlePlaceOrder()}
+              disabled={isLocked}
+              className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-md bg-primary text-[15px] font-bold text-primary-foreground disabled:opacity-50"
+            >
+              {isPlacing ? (
+                <Loader2
+                  className="size-[19px] animate-spin"
+                  strokeWidth={2.53}
+                />
+              ) : (
+                <ShoppingBag className="size-[19px]" strokeWidth={2.53} />
+              )}
+              <span className="font-body leading-[1.7]">
+                {isPlacing ? t("placing") : t("placeOrder")}
+              </span>
+            </button>
+
+            <p className="text-center font-body text-[11px] leading-[1.7] text-muted-foreground">
+              {t("noPayment")}
+            </p>
+          </>
+        )}
 
         <button
           type="button"
