@@ -1,5 +1,5 @@
-import { Leaf } from "lucide-react"
 import { NavLink } from "react-router-dom"
+import { BrandMark } from "@workspace/ui/components/brand-mark"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { ADMIN_NAV, type AdminNavItem } from "@/lib/admin-nav"
@@ -54,10 +54,7 @@ export function AdminSidebar({
     >
       <div className="flex items-center gap-2.5 px-5 pt-6 pb-5">
         <span className="flex size-10 items-center justify-center rounded-md bg-primary-foreground/15">
-          <Leaf
-            className="size-[19px] text-primary-foreground"
-            strokeWidth={2.5}
-          />
+          <BrandMark className="h-[18px] w-[24px] text-primary-foreground" />
         </span>
         <div>
           <div className="font-heading text-[15px] leading-tight font-bold text-primary-foreground">

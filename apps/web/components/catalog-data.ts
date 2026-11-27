@@ -70,8 +70,12 @@ export const DEFAULT_CATALOG_SORT: CatalogSort = "newest"
 /** Sort order as it appears in the picker; labels come from messages. */
 export const SORT_OPTIONS: CatalogSort[] = ["newest", "price-asc", "price-desc"]
 
-/** Shown when a product has no photo yet. */
-const FALLBACK_IMAGE = "/logo.svg"
+/**
+ * Shown when a product has no photo yet. A PNG, not the brand SVG: next/image
+ * refuses to optimise `image/svg+xml` sources unless `dangerouslyAllowSVG` is
+ * turned on, which would be a bad trade for a placeholder.
+ */
+const FALLBACK_IMAGE = "/product-placeholder.png"
 
 /**
  * Curated home-page selection, in the order they should appear. The API has no

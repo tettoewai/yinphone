@@ -1,8 +1,10 @@
 "use client"
 
-import { Heart, Leaf, Menu } from "lucide-react"
+import { Heart, Menu } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
+
+import { BrandMark } from "@workspace/ui/components/brand-mark"
 
 import AppMenu from "@/components/app-menu"
 import { Link } from "@/i18n/navigation"
@@ -25,10 +27,7 @@ export default function AppHeader() {
         className="flex items-center gap-1.5"
       >
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-          <Leaf
-            className="size-[18px] text-primary-foreground"
-            strokeWidth={2.67}
-          />
+          <BrandMark className="h-[17px] w-[23px] text-primary-foreground" />
         </div>
         <div className="leading-none">
           <div className="font-heading text-lg font-bold tracking-tight text-foreground">

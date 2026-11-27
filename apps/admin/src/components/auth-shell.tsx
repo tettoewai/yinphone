@@ -1,5 +1,7 @@
-import { Leaf, Lock } from "lucide-react"
+import { Lock } from "lucide-react"
 import type { ReactNode } from "react"
+
+import { BrandMark } from "@workspace/ui/components/brand-mark"
 
 import { MESSENGER_HANDLE, MESSENGER_URL } from "@/lib/contact"
 
@@ -15,10 +17,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
       <header className="flex min-h-16 items-center justify-between border-b border-border bg-card px-6 sm:px-8">
         <div className="flex items-center gap-2.5">
           <span className="flex size-10 items-center justify-center rounded-md bg-primary">
-            <Leaf
-              className="size-[19px] text-primary-foreground"
-              strokeWidth={2.5}
-            />
+            <BrandMark className="h-[18px] w-[24px] text-primary-foreground" />
           </span>
           <div>
             <div className="font-heading text-base leading-tight font-bold text-foreground">
