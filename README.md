@@ -75,19 +75,26 @@ pnpm turbo build --filter=web...
 
 ## Adding UI components
 
-Run from the app that will use them:
+`components.json` exists in `packages/ui` (shared) and `apps/web` (storefront).
+Add components with the `shadcn` CLI pinned in `packages/ui` (v4.23.0,
+`base-nova` style) — never `pnpm dlx shadcn@latest`, which would drift from the
+style the generated primitives expect.
 
 ```bash
-pnpm dlx shadcn@latest add button -c apps/web
+cd packages/ui && pnpm exec shadcn add <component>   # shared, default
+cd apps/web    && pnpm exec shadcn add <component>   # only the storefront needs it
 ```
 
-Use `-c apps/admin` for components first needed by the dashboard.
-
-Components are written to `packages/ui/src/components` and imported via:
+Both write UI primitives to `packages/ui/src/components` (the `ui` alias), so
+every app imports them the same way:
 
 ```tsx
 import { Button } from "@workspace/ui/components/button"
 ```
+
+`apps/admin` has no `components.json`: it consumes the same primitives from
+`@workspace/ui`, and keeps only admin-specific components in its own
+`src/components`.
 
 ## API
 

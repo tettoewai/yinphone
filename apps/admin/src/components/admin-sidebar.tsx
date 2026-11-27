@@ -70,40 +70,24 @@ export function AdminSidebar({
       </div>
 
       <nav aria-label="Admin" className="flex flex-col gap-1 px-3">
-        {ADMIN_NAV.map((item) => {
-          if (!item.to) {
-            return (
-              <button
-                key={item.key}
-                type="button"
-                disabled
-                title="Coming soon"
-                className="flex min-h-12 cursor-not-allowed items-center gap-3 rounded-md px-3 text-left text-primary-foreground/80"
-              >
-                <NavItemBody item={item} badge={badgeFor(item)} />
-              </button>
-            )
-          }
-
-          return (
-            <NavLink
-              key={item.key}
-              to={item.to}
-              end
-              onClick={onNavigate}
-              className={({ isActive }) =>
-                cn(
-                  "flex min-h-12 items-center gap-3 rounded-md px-3 transition-colors",
-                  isActive
-                    ? "bg-primary-foreground text-primary"
-                    : "text-primary-foreground/80 hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10"
-                )
-              }
-            >
-              <NavItemBody item={item} badge={badgeFor(item)} />
-            </NavLink>
-          )
-        })}
+        {ADMIN_NAV.map((item) => (
+          <NavLink
+            key={item.key}
+            to={item.to}
+            end
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              cn(
+                "flex min-h-12 items-center gap-3 rounded-md px-3 transition-colors",
+                isActive
+                  ? "bg-primary-foreground text-primary"
+                  : "text-primary-foreground/80 hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10"
+              )
+            }
+          >
+            <NavItemBody item={item} badge={badgeFor(item)} />
+          </NavLink>
+        ))}
       </nav>
 
       <div className="mt-auto px-5 pt-4 pb-5 text-center text-[11px] text-primary-foreground/60">

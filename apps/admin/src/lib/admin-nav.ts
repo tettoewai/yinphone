@@ -15,11 +15,8 @@ export type AdminNavItem = {
   label: string
   labelEn: string
   icon: LucideIcon
-  /**
-   * Omitted until the screen exists. Nav items without a route render as
-   * disabled so the shell never links to the catch-all redirect.
-   */
-  to?: string
+  /** Route the rail links to; every item has a screen behind it. */
+  to: string
   /**
    * Rendered as the gold count chip. The orders item's chip is the live NEW
    * count from the dashboard overview, passed in by `AdminSidebar`; anything
@@ -75,8 +72,6 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
 
 export function navItemForPath(pathname: string) {
   return ADMIN_NAV.find(
-    (item) =>
-      item.to !== undefined &&
-      (pathname === item.to || pathname.startsWith(`${item.to}/`))
+    (item) => pathname === item.to || pathname.startsWith(`${item.to}/`)
   )
 }
