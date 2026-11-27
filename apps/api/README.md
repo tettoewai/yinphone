@@ -68,6 +68,7 @@ when a required value is missing or invalid. Optional keys may be left blank —
 | `GET`  | `/api/auth/me`                      | Current admin (session required)              |
 | `POST` | `/api/auth/logout`                  | Ends the session and clears the cookie        |
 | `POST` | `/api/auth/change-password`         | Change own password, revokes other sessions   |
+| `POST` | `/api/auth/sessions/revoke-others`  | Sign out other devices, keeps this session    |
 | `POST` | `/api/auth/password-reset/request`  | Mail a 6-digit reset code; always `204`       |
 | `POST` | `/api/auth/password-reset/verify`   | Trade the code for a ticket                   |
 | `POST` | `/api/auth/password-reset/complete` | Spend the ticket on a new password            |
@@ -98,6 +99,9 @@ POST /api/auth/login
 - `change-password` requires the current password, stores a new argon2id hash,
   clears `mustChangePassword`, deletes every session, and returns a fresh
   cookie so the caller stays signed in on that device only.
+- `sessions/revoke-others` deletes every `AdminSession` except the caller's and
+  answers `{ "revoked": n }`; it is the same sweep as the password change,
+  minus the new hash, for a device that just wants the others gone.
 - `sameSite=lax` is the CSRF control: a cross-site POST never carries the
   cookie. In development the admin app proxies `/api` to this API, so requests
   are same-origin and no `credentials: "include"` is needed.

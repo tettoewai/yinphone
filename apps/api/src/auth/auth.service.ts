@@ -265,6 +265,19 @@ export class AuthService {
     return { token, expiresAt };
   }
 
+  /**
+   * Ends every session except the caller's, so the current device stays signed
+   * in. `changePassword` already does this as a side effect; this is the
+   * standalone "sign out other devices" move.
+   */
+  async revokeOtherSessions(adminId: string, currentSessionId: string) {
+    const { count } = await this.prisma.adminSession.deleteMany({
+      where: { adminUserId: adminId, id: { not: currentSessionId } },
+    });
+
+    return { revoked: count };
+  }
+
   /** Counts one failed attempt and returns the exception to throw for it. */
   private async registerFailure(
     adminId: string,

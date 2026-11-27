@@ -250,6 +250,13 @@ export const authApi = {
     })
   },
 
+  /** Ends the account's other sessions; this device stays signed in. */
+  revokeOtherSessions() {
+    return request<{ revoked: number }>("/auth/sessions/revoke-others", {
+      method: "POST",
+    })
+  },
+
   /**
    * The email-OTP reset. All three are unguarded: the caller is signed out.
    * `request` answers 204 whether or not the email has an account.

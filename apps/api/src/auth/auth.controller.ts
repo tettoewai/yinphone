@@ -12,7 +12,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 
-import { AdminAuthGuard } from './admin-auth.guard.js';
+import { AdminAuthGuard, type AdminRequest } from './admin-auth.guard.js';
 import { AuthService, type AdminView } from './auth.service.js';
 import { CurrentAdmin } from './current-admin.decorator.js';
 import {
@@ -111,6 +111,17 @@ export class AuthController {
       SESSION_COOKIE,
       token,
       sessionCookieOptions(this.config, expiresAt),
+    );
+  }
+
+  /** Keeps this device signed in and ends the account's other sessions. */
+  @Post('sessions/revoke-others')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminAuthGuard)
+  revokeOtherSessions(@Req() request: AdminRequest) {
+    return this.auth.revokeOtherSessions(
+      request.admin.id,
+      request.adminSessionId,
     );
   }
 

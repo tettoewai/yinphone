@@ -153,9 +153,12 @@ the English name on create and never changes on rename.
 there is no settings endpoint yet — but the team card is live. It reads
 `GET /api/admin/staff`; an invite (`POST`) returns a one-time password that is
 shown once for the owner to pass on, and role changes (`PATCH`) and removals
-(`DELETE`) write through the API and refetch. The screen is OWNER-only, and the
-server refuses to demote or remove the last owner or to change your own role;
-the row controls disable the same cases.
+(`DELETE`) write through the API and refetch. The account card is live too:
+“Update password” posts `POST /api/auth/change-password` (the API re-issues this
+device's cookie) and “Sign out other devices” posts
+`POST /api/auth/sessions/revoke-others`, which ends the rest and keeps this one.
+The screen is OWNER-only, and the server refuses to demote or remove the last
+owner or to change your own role; the row controls disable the same cases.
 
 ## Shared UI
 

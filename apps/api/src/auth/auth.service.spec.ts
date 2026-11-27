@@ -395,4 +395,30 @@ describe('AuthService', () => {
       expect(prisma.adminSession.create).toHaveBeenCalledOnce();
     });
   });
+
+  describe('revokeOtherSessions', () => {
+    it('deletes every session but the current one', async () => {
+      const prisma = createPrismaMock();
+      prisma.adminSession.deleteMany.mockResolvedValue({ count: 2 });
+
+      const result = await createService(prisma).revokeOtherSessions(
+        'a1',
+        's1',
+      );
+
+      expect(prisma.adminSession.deleteMany).toHaveBeenCalledWith({
+        where: { adminUserId: 'a1', id: { not: 's1' } },
+      });
+      expect(result).toEqual({ revoked: 2 });
+    });
+
+    it('reports zero when nothing else was signed in', async () => {
+      const prisma = createPrismaMock();
+      prisma.adminSession.deleteMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        createService(prisma).revokeOtherSessions('a1', 's1'),
+      ).resolves.toEqual({ revoked: 0 });
+    });
+  });
 });

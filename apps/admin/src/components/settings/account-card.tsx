@@ -1,9 +1,10 @@
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
-import { Circle, CircleCheck, Eye, EyeOff } from "lucide-react"
+import { Circle, CircleCheck, Eye, EyeOff, LoaderCircle } from "lucide-react"
 import { useState } from "react"
 
 import { FormAlert } from "@/components/form-alert"
+import { ApiError, authApi } from "@/lib/api"
 import {
   accountPasswordRules,
   emptyPasswordDraft,
@@ -18,6 +19,9 @@ type Status = {
   detail?: string
 }
 
+/** Which write is in flight, so each button can spin on its own. */
+type Pending = "password" | "sessions" | null
+
 type PasswordRowProps = {
   id: string
   label: string
@@ -26,6 +30,7 @@ type PasswordRowProps = {
   onChange: (value: string) => void
   visible: boolean
   onToggle: () => void
+  disabled?: boolean
 }
 
 function PasswordRow({
@@ -36,9 +41,15 @@ function PasswordRow({
   onChange,
   visible,
   onToggle,
+  disabled,
 }: PasswordRowProps) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-2 rounded-md border border-border bg-background px-3.5">
+    <div
+      className={cn(
+        "flex min-h-12 items-center justify-between gap-2 rounded-md border border-border bg-background px-3.5",
+        disabled && "opacity-60"
+      )}
+    >
       <input
         id={id}
         type={visible ? "text" : "password"}
@@ -47,6 +58,7 @@ function PasswordRow({
         autoComplete={autoComplete}
         placeholder={label}
         aria-label={label}
+        disabled={disabled}
         className="w-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
       />
       <button
@@ -54,6 +66,7 @@ function PasswordRow({
         onClick={onToggle}
         aria-pressed={visible}
         aria-label={`${visible ? "Hide" : "Show"} ${label}`}
+        disabled={disabled}
         className="flex size-9 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {visible ? (
@@ -66,13 +79,20 @@ function PasswordRow({
   )
 }
 
+function failureMessage(error: unknown) {
+  return error instanceof ApiError
+    ? error.message
+    : "Something went wrong. Please try again."
+}
+
 /**
  * Account: change the password, and end sessions elsewhere.
  *
  * The rule checklist is live — every line is derived from the same draft the
  * fields edit — so the tick marks mean something before "Update password" is
- * pressed. Submitting only validates: no password API exists yet, so a passing
- * form reports that the change stayed in this tab rather than claiming a write.
+ * pressed. Both buttons write through the API: `POST /api/auth/change-password`
+ * re-issues this device's cookie, and `POST /api/auth/sessions/revoke-others`
+ * leaves the current session alone.
  */
 export function AccountCard() {
   const [draft, setDraft] = useState<PasswordDraft>(emptyPasswordDraft)
@@ -82,8 +102,10 @@ export function AccountCard() {
     confirm: false,
   })
   const [status, setStatus] = useState<Status | null>(null)
+  const [pending, setPending] = useState<Pending>(null)
 
   const rules = accountPasswordRules()
+  const busy = pending !== null
 
   function update(patch: Partial<PasswordDraft>) {
     setDraft((current) => ({ ...current, ...patch }))
@@ -94,7 +116,7 @@ export function AccountCard() {
     setVisible((current) => ({ ...current, [key]: !current[key] }))
   }
 
-  function updatePassword() {
+  async function updatePassword() {
     const error = passwordFormError(draft)
     if (error) {
       setStatus({
@@ -105,21 +127,59 @@ export function AccountCard() {
       return
     }
 
-    setDraft(emptyPasswordDraft())
-    setVisible({ current: false, next: false, confirm: false })
-    setStatus({
-      tone: "success",
-      title: "Password updated in this tab.",
-      detail: "There is no password API yet — this change is not persisted.",
-    })
+    setPending("password")
+    setStatus(null)
+
+    try {
+      await authApi.changePassword({
+        currentPassword: draft.current,
+        newPassword: draft.next,
+      })
+
+      // The API cleared `mustChangePassword` and handed this device a fresh
+      // cookie, so there is nothing to sign out of here.
+      setDraft(emptyPasswordDraft())
+      setVisible({ current: false, next: false, confirm: false })
+      setStatus({
+        tone: "success",
+        title: "စကားဝှက် ပြောင်းပြီးပါပြီ • Password updated",
+        detail: "Other devices were signed out. This device stays signed in.",
+      })
+    } catch (failure) {
+      setStatus({
+        tone: "error",
+        title: "မအောင်မြင်ပါ • Could not update the password",
+        detail: failureMessage(failure),
+      })
+    } finally {
+      setPending(null)
+    }
   }
 
-  function signOutOtherDevices() {
-    setStatus({
-      tone: "success",
-      title: "Other devices signed out (demo).",
-      detail: "Sign-in history is not stored yet.",
-    })
+  async function signOutOtherDevices() {
+    setPending("sessions")
+    setStatus(null)
+
+    try {
+      const { revoked } = await authApi.revokeOtherSessions()
+
+      setStatus({
+        tone: "success",
+        title: "အခြား စက်များ ထွက်ပြီးပါပြီ • Other devices signed out",
+        detail:
+          revoked === 0
+            ? "No other devices were signed in."
+            : `${revoked} other ${revoked === 1 ? "device" : "devices"} signed out. This device stays signed in.`,
+      })
+    } catch (failure) {
+      setStatus({
+        tone: "error",
+        title: "မအောင်မြင်ပါ • Could not sign out other devices",
+        detail: failureMessage(failure),
+      })
+    } finally {
+      setPending(null)
+    }
   }
 
   return (
@@ -139,6 +199,7 @@ export function AccountCard() {
         onChange={(current) => update({ current })}
         visible={visible.current}
         onToggle={() => toggle("current")}
+        disabled={busy}
       />
 
       <PasswordRow
@@ -149,6 +210,7 @@ export function AccountCard() {
         onChange={(next) => update({ next })}
         visible={visible.next}
         onToggle={() => toggle("next")}
+        disabled={busy}
       />
 
       <PasswordRow
@@ -159,6 +221,7 @@ export function AccountCard() {
         onChange={(confirm) => update({ confirm })}
         visible={visible.confirm}
         onToggle={() => toggle("confirm")}
+        disabled={busy}
       />
 
       <div className="flex flex-col gap-1 rounded-md border border-border bg-background px-3.5 py-2.5">
@@ -203,18 +266,34 @@ export function AccountCard() {
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
-          onClick={updatePassword}
+          onClick={() => void updatePassword()}
+          disabled={busy}
           className="min-h-12 flex-1 px-4 text-sm font-bold"
         >
-          Update password
+          {pending === "password" ? (
+            <>
+              <LoaderCircle className="size-4 animate-spin" />
+              Updating…
+            </>
+          ) : (
+            "Update password"
+          )}
         </Button>
         <Button
           type="button"
           variant="outline"
-          onClick={signOutOtherDevices}
+          onClick={() => void signOutOtherDevices()}
+          disabled={busy}
           className="min-h-12 flex-1 px-4 text-sm font-bold"
         >
-          Sign out other devices
+          {pending === "sessions" ? (
+            <>
+              <LoaderCircle className="size-4 animate-spin" />
+              Signing out…
+            </>
+          ) : (
+            "Sign out other devices"
+          )}
         </Button>
       </div>
     </section>
