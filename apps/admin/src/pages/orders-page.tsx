@@ -2,8 +2,10 @@ import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import { Plus } from "lucide-react"
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 
 import { AdminPageHeader } from "@/components/admin-page-header"
+import { ManualOrderDialog } from "@/components/orders/manual-order-dialog"
 import { OrderFilters } from "@/components/orders/order-filters"
 import { OrderListEmpty } from "@/components/orders/order-list-empty"
 import { OrdersMobileList } from "@/components/orders/orders-mobile-list"
@@ -23,6 +25,7 @@ import {
   type PageSize,
 } from "@/lib/orders"
 import { pageCountFor } from "@/lib/paging"
+import { orderDetailPath } from "@/lib/routes"
 
 const EMPTY_COUNTS: Record<OrderStatus, number> = {
   NEW: 0,
@@ -38,14 +41,19 @@ const EMPTY_COUNTS: Record<OrderStatus, number> = {
  * any facet refetches, and the status pill counts are measured before the
  * status filter, so they never collapse to the selected status. The search box
  * is debounced in the hook; everything else applies immediately.
+ *
+ * "Manual order" opens a dialog for orders taken on chat; creating one jumps
+ * straight to its detail screen.
  */
 export function OrdersPage() {
+  const navigate = useNavigate()
   const [query, setQuery] = useState("")
   const [channel, setChannel] = useState<ChannelSlug | "all">("all")
   const [range, setRange] = useState<DateRangeKey>("7d")
   const [status, setStatus] = useState<OrderStatus | "all">("all")
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE)
+  const [manualOpen, setManualOpen] = useState(false)
 
   const {
     page: list,
@@ -115,8 +123,7 @@ export function OrdersPage() {
         subtitle={`Orders • ${total} orders • Asia/Yangon`}
         actions={
           <Button
-            disabled
-            title="Coming soon"
+            onClick={() => setManualOpen(true)}
             className="min-h-12 gap-2 px-5 text-sm font-bold"
           >
             <Plus className="size-4" strokeWidth={3} />
@@ -176,6 +183,16 @@ export function OrdersPage() {
           </section>
         )}
       </main>
+
+      {manualOpen ? (
+        <ManualOrderDialog
+          onOpenChange={setManualOpen}
+          onCreated={(code) => {
+            setManualOpen(false)
+            navigate(orderDetailPath(code))
+          }}
+        />
+      ) : null}
     </>
   )
 }

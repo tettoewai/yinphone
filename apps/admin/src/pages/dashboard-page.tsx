@@ -1,5 +1,6 @@
 import { Button } from "@workspace/ui/components/button"
 import { Banknote, Bell, Plus, ShoppingBag, Truck } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 import { useSession } from "@/auth/session-context"
 import { AdminPageHeader } from "@/components/admin-page-header"
@@ -22,6 +23,7 @@ import {
   toRecentOrders,
 } from "@/lib/dashboard"
 import { formatMmk } from "@/lib/format"
+import { ROUTES } from "@/lib/routes"
 import { yangonNow } from "@/lib/yangon-time"
 
 /** The four headline figures, derived from the overview payload. */
@@ -65,6 +67,7 @@ function buildKpis(overview: AdminDashboardOverview): Kpi[] {
 export function DashboardPage() {
   const { user } = useSession()
   const { overview, error, reload } = useDashboard()
+  const navigate = useNavigate()
   const nowDate = new Date()
   const now = yangonNow(nowDate)
 
@@ -75,8 +78,7 @@ export function DashboardPage() {
         subtitle={`Dashboard overview • ${now.shortDate}, Yangon time`}
         actions={
           <Button
-            disabled
-            title="Coming soon"
+            onClick={() => navigate(ROUTES.productNew)}
             className="min-h-12 gap-2 px-5 text-sm font-bold"
           >
             <Plus className="size-4" strokeWidth={3} />

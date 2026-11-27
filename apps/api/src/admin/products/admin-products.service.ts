@@ -32,6 +32,9 @@ const PRODUCT_SUMMARY_SELECT = {
   nameEn: true,
   priceMmk: true,
   stock: true,
+  // Carried on the row so the manual-order picker can offer the right sizes
+  // without a second request per selection.
+  sizes: true,
   isActive: true,
   category: { select: { id: true, slug: true, nameMy: true, nameEn: true } },
 } as const;
@@ -74,6 +77,7 @@ function toSummary(row: ProductSummaryRow) {
     nameEn: row.nameEn,
     priceMmk: row.priceMmk,
     stock: row.stock,
+    sizes: row.sizes,
     isActive: row.isActive,
     category: row.category,
   };
@@ -84,7 +88,6 @@ function toDetail(row: ProductDetailRow) {
     ...toSummary(row),
     descriptionMy: row.descriptionMy,
     descriptionEn: row.descriptionEn,
-    sizes: row.sizes,
     /** ISO 8601; the admin renders every timestamp in Asia/Yangon. */
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

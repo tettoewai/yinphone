@@ -4,13 +4,18 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
 
 import { AdminAuthGuard } from '../../auth/admin-auth.guard.js';
 import { RolesGuard } from '../../auth/roles.guard.js';
-import { orderCodeSchema } from '../../orders/dto/create-order.schema.js';
+import {
+  createOrderSchema,
+  orderCodeSchema,
+  type CreateOrderInput,
+} from '../../orders/dto/create-order.schema.js';
 import { AdminOrdersService } from './admin-orders.service.js';
 import {
   listAdminOrdersQuerySchema,
@@ -36,6 +41,15 @@ export class AdminOrdersController {
   @Get(':code')
   findByCode(@Param('code', { schema: orderCodeSchema }) code: string) {
     return this.orders.findByCode(code);
+  }
+
+  /**
+   * Staff take orders on chat as well, so any signed-in admin may record one.
+   * It starts as NEW, exactly like a storefront order.
+   */
+  @Post()
+  create(@Body({ schema: createOrderSchema }) input: CreateOrderInput) {
+    return this.orders.create(input);
   }
 
   @Patch(':code/status')

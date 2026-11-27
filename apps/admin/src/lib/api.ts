@@ -90,6 +90,23 @@ export type AdminOrderListQuery = {
   offset?: number
 }
 
+/** One line of a manual order; prices are always read server-side. */
+export type CreateOrderItemBody = {
+  productId: string
+  quantity: number
+  /** Omitted for one-size items. */
+  size?: AdminOrderSize
+}
+
+export type CreateOrderBody = {
+  customerName: string
+  customerPhone: string
+  /** Channel slug, e.g. `messenger`. */
+  channel: string
+  note?: string
+  items: CreateOrderItemBody[]
+}
+
 export type AdminOrderPage = {
   items: AdminOrderSummary[]
   total: number
@@ -316,6 +333,11 @@ export const ordersApi = {
       { method: "PATCH", body: { status } }
     )
   },
+
+  /** Records an order taken over chat; the API prices it and starts it as NEW. */
+  create(body: CreateOrderBody) {
+    return request<AdminOrderDetail>("/admin/orders", { method: "POST", body })
+  },
 }
 
 export type AdminProductSize = "S" | "M" | "L" | "XL"
@@ -336,6 +358,8 @@ export type AdminProductSummary = {
   nameEn: string
   priceMmk: number
   stock: number
+  /** Empty for one-size items such as longyi and accessories. */
+  sizes: AdminProductSize[]
   isActive: boolean
   category: AdminProductCategory
 }
@@ -350,7 +374,6 @@ export type AdminProductImage = {
 export type AdminProductDetail = AdminProductSummary & {
   descriptionMy: string | null
   descriptionEn: string | null
-  sizes: AdminProductSize[]
   createdAt: string
   updatedAt: string
   images: AdminProductImage[]

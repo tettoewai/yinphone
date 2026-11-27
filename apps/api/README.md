@@ -196,6 +196,7 @@ OWNER additionally carry `@Roles('OWNER')`.
 | -------- | ------------------------------------ | ------------- |
 | `GET`    | `/api/admin/dashboard`               | STAFF + OWNER |
 | `GET`    | `/api/admin/orders`                  | STAFF + OWNER |
+| `POST`   | `/api/admin/orders`                  | STAFF + OWNER |
 | `GET`    | `/api/admin/orders/:code`            | STAFF + OWNER |
 | `PATCH`  | `/api/admin/orders/:code/status`     | STAFF + OWNER |
 | `GET`    | `/api/admin/products`                | STAFF + OWNER |
@@ -276,11 +277,21 @@ Body `{ "status": "CONFIRMED" }`. Any status is accepted — staff correct data
 by hand too — and the response is the updated order detail. There is no status
 audit log yet.
 
+### `POST /api/admin/orders`
+
+Manual orders taken over chat. Takes the same body as the public
+`POST /api/orders` (customer, phone, channel slug, optional note and the item
+lines). Prices are read from the catalogue rather than the request, the order
+starts as `NEW`, and the response is the `GET /api/admin/orders/:code` detail so
+the screen can open what it just created. Both roles may record one.
+
 ### `GET /api/admin/products`
 
 Responds with `{ items, total, limit, offset, counts }`. Each item is
-`id`, `slug`, `nameMy`, `nameEn`, `priceMmk`, `stock`, `isActive` and its
-`category` (`id`, `slug`, `nameMy`, `nameEn`). `counts` is `{ in, low, out }` —
+`id`, `slug`, `nameMy`, `nameEn`, `priceMmk`, `stock`, `sizes`, `isActive` and
+its `category` (`id`, `slug`, `nameMy`, `nameEn`). `sizes` rides on the row so
+the manual-order picker knows which sizes to offer; it is empty for one-size
+items. `counts` is `{ in, low, out }` —
 the stock breakdown measured over the search, category and SHOWING view but
 **before** the stock chip, so the chips do not collapse to the selected one.
 `low` means `1–4` (the screen's `< 5` threshold).

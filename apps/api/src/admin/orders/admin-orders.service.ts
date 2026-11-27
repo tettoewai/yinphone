@@ -5,6 +5,8 @@ import type {
   OrderWhereInput,
 } from '../../generated/prisma/models.js';
 import type { OrderStatus } from '../../generated/prisma/enums.js';
+import type { CreateOrderInput } from '../../orders/dto/create-order.schema.js';
+import { OrdersService } from '../../orders/orders.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { DAY_MS, startOfYangonDay } from '../yangon-time.js';
 import type {
@@ -141,7 +143,21 @@ function toFilters(query: ListAdminOrdersQuery, now: Date): OrderWhereInput {
 
 @Injectable()
 export class AdminOrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orders: OrdersService,
+  ) {}
+
+  /**
+   * Manual orders taken over chat. Creation is the storefront's path — the
+   * prices are read from the database there too — so this reuses
+   * `OrdersService.create` and answers with the detail the screen opens.
+   */
+  async create(input: CreateOrderInput) {
+    const created = await this.orders.create(input);
+
+    return this.findByCode(created.code);
+  }
 
   async list(query: ListAdminOrdersQuery) {
     const now = new Date();

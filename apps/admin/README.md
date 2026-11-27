@@ -118,6 +118,13 @@ flight (`src/hooks/use-orders.ts`, `use-products.ts`, `use-categories.ts`,
 `use-dashboard.ts`). The search box is debounced by 250 ms and every request is
 abortable.
 
+“Manual order” on `/orders` opens `manual-order-dialog.tsx` for orders taken on
+chat: customer, channel and one or more product lines, with a live total
+computed from the catalogue (`src/lib/manual-order.ts`). Saving posts
+`POST /api/admin/orders`, which prices the order server-side and starts it as
+NEW, then goes straight to the new order's detail screen. The dashboard's
+header action opens the product editor instead of being disabled.
+
 Writes go straight to the API: order status changes (`PATCH .../status`), a
 product's hide/show toggle and visibility switch (`PATCH .../visibility`),
 duplicate (`POST .../duplicate`) and the Undo that hides the row again or

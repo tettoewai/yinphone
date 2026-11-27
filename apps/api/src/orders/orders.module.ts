@@ -6,5 +6,7 @@ import { OrdersService } from './orders.service.js';
 @Module({
   controllers: [OrdersController],
   providers: [OrdersService],
+  // The admin surface records manual orders through the same pricing path.
+  exports: [OrdersService],
 })
 export class OrdersModule {}
