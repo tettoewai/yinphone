@@ -154,15 +154,16 @@ branch runs, so behaviour is unchanged.
 
 **Environment variables**
 
-| Variable                                                                                 | Required | Notes                                                                                                                                    |
-| ---------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                                                           | yes      | Postgres URL. Used at runtime and by `prisma generate`.                                                                                  |
-| `CORS_ORIGINS`                                                                           | yes      | Comma-separated browser origins, e.g. `https://yinphone.vercel.app`                                                                      |
-| `COOKIE_SECURE`                                                                          | no       | Defaults to on because Vercel runs in production mode                                                                                    |
-| `COOKIE_DOMAIN`                                                                          | no       | Only if you want the session cookie shared across subdomains, e.g. `.yinphone.shop`. Leave unset for the normal `api.` + `admin.` setup. |
-| `SESSION_TTL_HOURS`, `SESSION_REMEMBER_DAYS`, `LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_MINUTES` | no       | Defaults are in `apps/api/README.md`                                                                                                     |
-| `SEED_STAFF_PASSWORD`                                                                    | no       | Create the demo `OWNER` during the build's seed step. Production seeds skip that account when it is unset.                               |
-| `PORT`                                                                                   | no       | Leave unset; on Vercel the port is irrelevant because the runtime chooses it                                                             |
+| Variable                                                                                 | Required | Notes                                                                                                                                           |
+| ---------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                                                           | yes      | Postgres URL. Used at runtime and by `prisma generate`.                                                                                         |
+| `CORS_ORIGINS`                                                                           | yes      | Comma-separated browser origins, e.g. `https://yinphone.vercel.app`                                                                             |
+| `COOKIE_SECURE`                                                                          | no       | Defaults to on because Vercel runs in production mode                                                                                           |
+| `COOKIE_DOMAIN`                                                                          | no       | Only if you want the session cookie shared across subdomains, e.g. `.yinphone.shop`. Leave unset for the normal `api.` + `admin.` setup.        |
+| `SESSION_TTL_HOURS`, `SESSION_REMEMBER_DAYS`, `LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_MINUTES` | no       | Defaults are in `apps/api/README.md`                                                                                                            |
+| `SEED_STAFF_PASSWORD`                                                                    | no       | Create the demo `OWNER` during the build's seed step. Production seeds skip that account when it is unset.                                      |
+| `SEED_ADMIN_EMAIL`                                                                       | no       | Email of the existing shop owner the seed restores. Set it to the address already in the deployed database, or a reseed creates a second owner. |
+| `PORT`                                                                                   | no       | Leave unset; on Vercel the port is irrelevant because the runtime chooses it                                                                    |
 
 Set these for **Production and Preview** unless you keep a separate database.
 
