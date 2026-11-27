@@ -249,6 +249,31 @@ export const authApi = {
       body: input,
     })
   },
+
+  /**
+   * The email-OTP reset. All three are unguarded: the caller is signed out.
+   * `request` answers 204 whether or not the email has an account.
+   */
+  requestPasswordReset(email: string) {
+    return request<null>("/auth/password-reset/request", {
+      method: "POST",
+      body: { email },
+    })
+  },
+
+  verifyPasswordReset(email: string, code: string) {
+    return request<{ ticket: string }>("/auth/password-reset/verify", {
+      method: "POST",
+      body: { email, code },
+    })
+  },
+
+  completePasswordReset(ticket: string, password: string) {
+    return request<null>("/auth/password-reset/complete", {
+      method: "POST",
+      body: { ticket, password },
+    })
+  },
 }
 
 /** Omits empty values, so a cleared filter never lands in the query string. */

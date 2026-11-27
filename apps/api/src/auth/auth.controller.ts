@@ -19,7 +19,20 @@ import {
   changePasswordSchema,
   type ChangePasswordInput,
 } from './dto/change-password.schema.js';
+import {
+  completePasswordResetSchema,
+  type CompletePasswordResetInput,
+} from './dto/complete-password-reset.schema.js';
 import { loginSchema, type LoginInput } from './dto/login.schema.js';
+import {
+  requestPasswordResetSchema,
+  type RequestPasswordResetInput,
+} from './dto/request-password-reset.schema.js';
+import {
+  verifyPasswordResetSchema,
+  type VerifyPasswordResetInput,
+} from './dto/verify-password-reset.schema.js';
+import { PasswordResetService } from './password-reset.service.js';
 import {
   clearSessionCookieOptions,
   sessionCookieOptions,
@@ -30,6 +43,7 @@ import { SESSION_COOKIE, readCookie } from './session-token.js';
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
+    private readonly passwordReset: PasswordResetService,
     private readonly config: ConfigService,
   ) {}
 
@@ -98,5 +112,40 @@ export class AuthController {
       token,
       sessionCookieOptions(this.config, expiresAt),
     );
+  }
+
+  /**
+   * The three reset moves are unguarded on purpose: the caller has forgotten
+   * their password and is signed out.
+   *
+   * `request` answers 204 for an unknown email too, so it cannot be used to
+   * discover which addresses have an account.
+   */
+  @Post('password-reset/request')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async requestPasswordReset(
+    @Body({ schema: requestPasswordResetSchema })
+    input: RequestPasswordResetInput,
+  ) {
+    await this.passwordReset.request(input.email);
+  }
+
+  @Post('password-reset/verify')
+  @HttpCode(HttpStatus.OK)
+  verifyPasswordReset(
+    @Body({ schema: verifyPasswordResetSchema })
+    input: VerifyPasswordResetInput,
+  ) {
+    return this.passwordReset.verify(input.email, input.code);
+  }
+
+  /** Ends every session for the account, so the next sign-in uses the new password. */
+  @Post('password-reset/complete')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async completePasswordReset(
+    @Body({ schema: completePasswordResetSchema })
+    input: CompletePasswordResetInput,
+  ) {
+    await this.passwordReset.complete(input.ticket, input.password);
   }
 }

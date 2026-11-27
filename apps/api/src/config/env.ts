@@ -65,6 +65,30 @@ export const envSchema = z.object({
     blankToUndefined,
     z.string().trim().min(1).optional(),
   ),
+  /**
+   * Resend API key for the password-reset email. Without it the API logs the
+   * code to the console instead of sending mail, which is enough for local
+   * development; production must set it.
+   */
+  RESEND_API_KEY: z.preprocess(
+    blankToUndefined,
+    z.string().trim().min(1).optional(),
+  ),
+  /** `From` address on reset emails; the domain must be verified in Resend. */
+  RESET_EMAIL_FROM: z.preprocess(
+    blankToUndefined,
+    z
+      .string()
+      .trim()
+      .min(1)
+      .default('YinPhone Boutique <onboarding@resend.dev>'),
+  ),
+  /** How long a reset code (and its ticket) stays valid, in minutes. */
+  RESET_CODE_TTL_MINUTES: optionalInt(10, 1, 60),
+  /** Wrong-code guesses allowed before that code is burnt. */
+  RESET_CODE_MAX_ATTEMPTS: optionalInt(5, 1, 20),
+  /** Seconds before the same email may request another code. */
+  RESET_RESEND_COOLDOWN_SECONDS: optionalInt(30, 0, 3600),
 });
 
 export type Env = z.infer<typeof envSchema>;

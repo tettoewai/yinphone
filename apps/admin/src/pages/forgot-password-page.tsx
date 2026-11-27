@@ -16,6 +16,7 @@ import { AuthShell } from "@/components/auth-shell"
 import { Field, TextField } from "@/components/field"
 import { FormAlert } from "@/components/form-alert"
 import { NewPasswordFields } from "@/components/new-password"
+import { ApiError } from "@/lib/api"
 import { isNewPasswordValid } from "@/lib/password-rules"
 import {
   RESEND_COOLDOWN_SECONDS,
@@ -94,8 +95,17 @@ export function ForgotPasswordPage() {
       setCodeError(undefined)
       setResendIn(RESEND_COOLDOWN_SECONDS)
       setStep("code")
-    } catch {
-      setError("Could not send the code. Please try again.")
+    } catch (failure) {
+      // The server refuses a second code inside its cooldown; show how long.
+      if (failure instanceof ApiError && failure.retryAfterSeconds) {
+        setResendIn(failure.retryAfterSeconds)
+      }
+
+      setError(
+        failure instanceof ApiError
+          ? failure.message
+          : "Could not send the code. Please try again."
+      )
     } finally {
       setSubmitting(false)
     }
@@ -154,8 +164,24 @@ export function ForgotPasswordPage() {
       setPassword("")
       setConfirm("")
       setStep("done")
-    } catch {
-      setError("Could not update the password. Please try again.")
+    } catch (failure) {
+      // An expired ticket cannot be retried, so restart at the email step
+      // rather than leaving the form looking saveable.
+      if (
+        failure instanceof ApiError &&
+        failure.code === "RESET_TICKET_EXPIRED"
+      ) {
+        setTicket("")
+        setPassword("")
+        setConfirm("")
+        setStep("email")
+      }
+
+      setError(
+        failure instanceof ApiError
+          ? failure.message
+          : "Could not update the password. Please try again."
+      )
     } finally {
       setSubmitting(false)
     }

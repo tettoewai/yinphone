@@ -91,7 +91,8 @@ the storefront needs the API and its database running. It reads
 Tailwind theme. It signs in against this API and ships the dashboard overview,
 the orders list and detail screens, and the products list plus its create/edit
 editor, categories, channels and settings screens. All of them are live against
-`/api/admin/*`; on settings, the shop profile, logo and hours still use
+`/api/admin/*`; the sign-in screen and the email-OTP password reset use
+`/api/auth/*`. On settings, the shop profile, logo and hours still use
 placeholder data (there is no settings endpoint yet) while the team card reads
 and writes the staff routes. The design mocks live in `apps/admin/design/`.
 

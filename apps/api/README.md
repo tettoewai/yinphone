@@ -26,22 +26,27 @@ user at `SEED_STAFF_EMAIL` (default `staff@yinphone.shop`).
 
 ## Environment
 
-| Variable                | Required  | Default                                       | Notes                                    |
-| ----------------------- | --------- | --------------------------------------------- | ---------------------------------------- |
-| `DATABASE_URL`          | yes       | –                                             | PostgreSQL connection string             |
-| `PORT`                  | no        | `4000`                                        | HTTP port                                |
-| `CORS_ORIGINS`          | no        | `http://localhost:3000,http://localhost:3001` | Comma-separated allowed origins          |
-| `NODE_ENV`              | no        | `development`                                 | `development` \| `test` \| `production`  |
-| `SESSION_TTL_HOURS`     | no        | `12`                                          | Lifetime of a normal admin sign-in       |
-| `SESSION_REMEMBER_DAYS` | no        | `30`                                          | Lifetime with "remember this device"     |
-| `LOGIN_MAX_ATTEMPTS`    | no        | `5`                                           | Failed sign-ins before the account locks |
-| `LOGIN_LOCK_MINUTES`    | no        | `5`                                           | How long a locked account stays locked   |
-| `COOKIE_SECURE`         | no        | on in production                              | `true` / `false` override for the flag   |
-| `COOKIE_DOMAIN`         | no        | host-only                                     | e.g. `.yinphone.shop` for subdomains     |
-| `SEED_ADMIN_EMAIL`      | no        | `owner@yinphone.example`                      | Seed script only                         |
-| `SEED_ADMIN_PASSWORD`   | seed only | –                                             | Required by `db:seed`                    |
-| `SEED_STAFF_EMAIL`      | no        | `staff@yinphone.shop`                         | Seed script only, demo account           |
-| `SEED_STAFF_PASSWORD`   | no        | –                                             | Seed only; creates the demo `STAFF` user |
+| Variable                        | Required  | Default                                       | Notes                                    |
+| ------------------------------- | --------- | --------------------------------------------- | ---------------------------------------- |
+| `DATABASE_URL`                  | yes       | –                                             | PostgreSQL connection string             |
+| `PORT`                          | no        | `4000`                                        | HTTP port                                |
+| `CORS_ORIGINS`                  | no        | `http://localhost:3000,http://localhost:3001` | Comma-separated allowed origins          |
+| `NODE_ENV`                      | no        | `development`                                 | `development` \| `test` \| `production`  |
+| `SESSION_TTL_HOURS`             | no        | `12`                                          | Lifetime of a normal admin sign-in       |
+| `SESSION_REMEMBER_DAYS`         | no        | `30`                                          | Lifetime with "remember this device"     |
+| `LOGIN_MAX_ATTEMPTS`            | no        | `5`                                           | Failed sign-ins before the account locks |
+| `LOGIN_LOCK_MINUTES`            | no        | `5`                                           | How long a locked account stays locked   |
+| `COOKIE_SECURE`                 | no        | on in production                              | `true` / `false` override for the flag   |
+| `COOKIE_DOMAIN`                 | no        | host-only                                     | e.g. `.yinphone.shop` for subdomains     |
+| `SEED_ADMIN_EMAIL`              | no        | `owner@yinphone.example`                      | Seed script only                         |
+| `SEED_ADMIN_PASSWORD`           | seed only | –                                             | Required by `db:seed`                    |
+| `SEED_STAFF_EMAIL`              | no        | `staff@yinphone.shop`                         | Seed script only, demo account           |
+| `SEED_STAFF_PASSWORD`           | no        | –                                             | Seed only; creates the demo `STAFF` user |
+| `RESEND_API_KEY`                | prod      | –                                             | Resend key for password-reset email      |
+| `RESET_EMAIL_FROM`              | no        | `YinPhone Boutique <onboarding@resend.dev>`   | Verified Resend sender address           |
+| `RESET_CODE_TTL_MINUTES`        | no        | `10`                                          | Code/ticket lifetime                     |
+| `RESET_CODE_MAX_ATTEMPTS`       | no        | `5`                                           | Wrong-code guesses before it is burnt    |
+| `RESET_RESEND_COOLDOWN_SECONDS` | no        | `30`                                          | Wait before another code per account     |
 
 Variables are validated at boot by `src/config/env.ts` (Zod). The process exits
 when a required value is missing or invalid. Optional keys may be left blank —
@@ -50,19 +55,22 @@ when a required value is missing or invalid. Optional keys may be left blank —
 
 ## Endpoints
 
-| Method | Path                        | Description                                   |
-| ------ | --------------------------- | --------------------------------------------- |
-| `GET`  | `/api/health`               | Liveness plus a `SELECT 1` database ping      |
-| `GET`  | `/api/categories`           | Active categories with `productCount`         |
-| `GET`  | `/api/products`             | Active products, filterable and paginated     |
-| `GET`  | `/api/products/:slug`       | Single product (404 when missing or inactive) |
-| `GET`  | `/api/channels`             | Active order channels                         |
-| `POST` | `/api/orders`               | Create an order                               |
-| `GET`  | `/api/orders/:code`         | Order summary by human-readable code          |
-| `POST` | `/api/auth/login`           | Admin sign-in; sets the session cookie        |
-| `GET`  | `/api/auth/me`              | Current admin (session required)              |
-| `POST` | `/api/auth/logout`          | Ends the session and clears the cookie        |
-| `POST` | `/api/auth/change-password` | Change own password, revokes other sessions   |
+| Method | Path                                | Description                                   |
+| ------ | ----------------------------------- | --------------------------------------------- |
+| `GET`  | `/api/health`                       | Liveness plus a `SELECT 1` database ping      |
+| `GET`  | `/api/categories`                   | Active categories with `productCount`         |
+| `GET`  | `/api/products`                     | Active products, filterable and paginated     |
+| `GET`  | `/api/products/:slug`               | Single product (404 when missing or inactive) |
+| `GET`  | `/api/channels`                     | Active order channels                         |
+| `POST` | `/api/orders`                       | Create an order                               |
+| `GET`  | `/api/orders/:code`                 | Order summary by human-readable code          |
+| `POST` | `/api/auth/login`                   | Admin sign-in; sets the session cookie        |
+| `GET`  | `/api/auth/me`                      | Current admin (session required)              |
+| `POST` | `/api/auth/logout`                  | Ends the session and clears the cookie        |
+| `POST` | `/api/auth/change-password`         | Change own password, revokes other sessions   |
+| `POST` | `/api/auth/password-reset/request`  | Mail a 6-digit reset code; always `204`       |
+| `POST` | `/api/auth/password-reset/verify`   | Trade the code for a ticket                   |
+| `POST` | `/api/auth/password-reset/complete` | Spend the ticket on a new password            |
 
 ## Admin authentication
 
@@ -96,6 +104,48 @@ POST /api/auth/login
 - Admin routes live under `/api/admin` (see [Admin API](#admin-api-apiadmin))
   and use `AdminAuthGuard` plus `RolesGuard`, with `@Roles('OWNER')` on
   owner-only routes. Both guards are exported by `AuthModule`.
+
+## Password reset
+
+The forgot-password screens drive three unguarded routes; the caller has no
+session by definition.
+
+```http
+POST /api/auth/password-reset/request
+{ "email": "staff@yinphone.shop" }
+204
+
+POST /api/auth/password-reset/verify
+{ "email": "staff@yinphone.shop", "code": "123456" }
+200 { "ticket": "<opaque 43-char token>" }
+400 { "code": "INVALID_RESET_CODE", "message": "...", "attemptsLeft": 4 }
+400 { "code": "RESET_CODE_EXPIRED" | "RESET_CODE_EXHAUSTED", "message": "..." }
+
+POST /api/auth/password-reset/complete
+{ "ticket": "<ticket>", "password": "a-new-password" }
+204
+400 { "code": "RESET_TICKET_EXPIRED", "message": "..." }
+```
+
+- Codes are 6 digits, valid for `RESET_CODE_TTL_MINUTES`, and stored only as an
+  argon2 hash. The ticket is a 256-bit token stored as a SHA-256 hash, and
+  `complete` spends it once.
+- `request` answers `204` for an unknown email as well, so the route cannot be
+  used to discover which addresses have an account. A second request inside
+  `RESET_RESEND_COOLDOWN_SECONDS` answers `429 RESET_COOLDOWN` with
+  `retryAfterSeconds`.
+- Each wrong guess increments `attempts`; past `RESET_CODE_MAX_ATTEMPTS` the
+  code is refused with `RESET_CODE_EXHAUSTED` and a new one must be requested.
+  A code that verifies cannot be verified again — verifying swaps it for the
+  ticket and restarts the expiry window.
+- `complete` sets the new argon2id hash, clears `mustChangePassword` and any
+  lockout, and deletes every `AdminSession` for the account, so no device stays
+  signed in on the old password.
+- Delivery goes through Resend (`POST https://api.resend.com/emails`, called
+  with `fetch`). Without `RESEND_API_KEY` the code is logged at `warn` level
+  instead of mailed, which is how the flow is exercised locally; in production a
+  missing key answers `503 EMAIL_UNAVAILABLE`. A code whose mail failed to send
+  is deleted rather than left valid.
 
 ### `GET /api/products`
 
@@ -309,8 +359,9 @@ selected.
 ## Data model
 
 `Channel`, `Category`, `Product`, `ProductImage`, `Order`, `OrderItem`,
-`AdminUser` (`OWNER` / `STAFF`, argon2 password hashes) and `AdminSession`
-(hashed bearer tokens, `expiresAt`, `lastUsedAt`). See
+`AdminUser` (`OWNER` / `STAFF`, argon2 password hashes), `AdminSession`
+(hashed bearer tokens, `expiresAt`, `lastUsedAt`) and `PasswordResetCode`
+(hashed OTP + ticket, attempt counter, expiry). See
 `prisma/schema.prisma`.
 
 Money is stored as whole kyat in `Int` columns (`priceMmk`, `totalMmk`,

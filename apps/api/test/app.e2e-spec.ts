@@ -104,6 +104,40 @@ describe.skipIf(!testDatabaseUrl)('API (e2e)', () => {
     expect(response.headers['set-cookie']).toContain('yp_session=');
   });
 
+  describe('password reset', () => {
+    it('answers 204 for an email with no account', async () => {
+      await request(app.getHttpServer())
+        .post('/api/auth/password-reset/request')
+        .send({ email: 'e2e-nobody@yinphone.example' })
+        .expect(204);
+    });
+
+    it('validates the request payload', async () => {
+      await request(app.getHttpServer())
+        .post('/api/auth/password-reset/request')
+        .send({ email: 'not-an-email' })
+        .expect(400);
+    });
+
+    it('rejects a code for an unknown account without revealing it', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/password-reset/verify')
+        .send({ email: 'e2e-nobody@yinphone.example', code: '123456' })
+        .expect(400);
+
+      expect(response.body).toMatchObject({ code: 'INVALID_RESET_CODE' });
+    });
+
+    it('rejects a complete call with an unknown ticket', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/password-reset/complete')
+        .send({ ticket: 'e2e-not-a-real-ticket', password: 'whatever-123' })
+        .expect(400);
+
+      expect(response.body).toMatchObject({ code: 'RESET_TICKET_EXPIRED' });
+    });
+  });
+
   it('GET /api/admin/orders rejects an anonymous request', async () => {
     const response = await request(app.getHttpServer())
       .get('/api/admin/orders')

@@ -63,14 +63,11 @@ it **in memory only** — never in `localStorage`, `sessionStorage` or the URL.
 Reloading the reset screen drops it and the user signs in again, which is the
 intended failure mode for a credential.
 
-## Password reset (front end only)
+## Password reset
 
 `/forgot-password` is a four-step flow — email → 6-digit code → new password →
-done — and is currently **simulated in the browser**. `src/lib/password-reset.ts`
-holds the whole contract; nothing is emailed and any 6-digit code is accepted.
-
-To go live, keep the three function signatures and point them at the real
-endpoints (Resend-backed):
+done — backed by the API (`src/lib/password-reset.ts` is a thin client over
+`authApi`):
 
 ```
 POST /api/auth/password-reset/request   { email }            → 204
@@ -78,8 +75,17 @@ POST /api/auth/password-reset/verify    { email, code }      → { ticket }
 POST /api/auth/password-reset/complete  { ticket, password } → 204
 ```
 
-The screens do not need to change. Password rules and the strength meter are
-shared with the forced-reset screen via `src/lib/password-rules.ts` and
+`request` answers `204` for an unknown email too, so the screen behaves the
+same whether or not the address has an account. The resend button honours the
+server's `retryAfterSeconds` cooldown. A `RESET_TICKET_EXPIRED` error from the
+last step sends the form back to the email step, because that ticket cannot be
+retried. Finishing the reset ends every session for the account, which is what
+the done step tells the user.
+
+`RESET_CODE_LENGTH`, `RESET_CODE_TTL_MINUTES` and `RESEND_COOLDOWN_SECONDS` in
+`src/lib/password-reset.ts` mirror the API defaults for the copy on screen; the
+server remains the authority. Password rules and the strength meter are shared
+with the forced-reset screen via `src/lib/password-rules.ts` and
 `src/components/new-password.tsx`.
 
 ## Fonts

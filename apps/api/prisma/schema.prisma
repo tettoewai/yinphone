@@ -123,18 +123,19 @@ model OrderItem {
 }
 
 model AdminUser {
-  id                  String         @id @default(cuid())
-  email               String         @unique
+  id                  String              @id @default(cuid())
+  email               String              @unique
   passwordHash        String
   name                String
-  role                AdminRole      @default(STAFF)
-  mustChangePassword  Boolean        @default(true)
+  role                AdminRole           @default(STAFF)
+  mustChangePassword  Boolean             @default(true)
   lastLoginAt         DateTime?
-  failedLoginAttempts Int            @default(0)
+  failedLoginAttempts Int                 @default(0)
   lockedUntil         DateTime?
   sessions            AdminSession[]
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  resetCodes          PasswordResetCode[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 }
 
 model AdminSession {
@@ -148,5 +149,26 @@ model AdminSession {
   createdAt   DateTime  @default(now())
 
   @@index([adminUserId])
+  @@index([expiresAt])
+}
+
+/**
+ * One attempt at the email-OTP password reset: the emailed code, and — once it
+ * verifies — the ticket that unlocks setting a new password. Both are stored
+ * hashed, so a database leak cannot be replayed.
+ */
+model PasswordResetCode {
+  id          String    @id @default(cuid())
+  codeHash    String // argon2 hash of the 6-digit code
+  ticketHash  String?   @unique // SHA-256 of the ticket; set when the code verifies
+  attempts    Int       @default(0)
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  consumedAt  DateTime?
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@index([adminUserId, createdAt])
   @@index([expiresAt])
 }
