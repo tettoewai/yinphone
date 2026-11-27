@@ -59,6 +59,7 @@ const detailRow = {
         slug: 'dress',
         nameMy: 'ဂါဝန်',
         nameEn: 'Dress',
+        images: [{ url: 'https://cdn.example/dress.jpg' }],
       },
     },
   ],
@@ -80,6 +81,9 @@ describe('AdminOrdersService', () => {
         code: 'YP-2026-0001',
         itemCount: 2,
         totalMmk: 90000,
+      });
+      expect(created.items[0]).toMatchObject({
+        imageUrl: 'https://cdn.example/dress.jpg',
       });
     });
 

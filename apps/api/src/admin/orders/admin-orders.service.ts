@@ -61,7 +61,17 @@ const ORDER_DETAIL_INCLUDE = {
       unitPriceMmk: true,
       size: true,
       product: {
-        select: { id: true, slug: true, nameMy: true, nameEn: true },
+        select: {
+          id: true,
+          slug: true,
+          nameMy: true,
+          nameEn: true,
+          images: {
+            select: { url: true },
+            orderBy: { sortOrder: 'asc' },
+            take: 1,
+          },
+        },
       },
     },
   },
@@ -104,6 +114,8 @@ function toDetail(row: OrderDetailRow, priorOrderCount: number) {
       slug: item.product.slug,
       nameMy: item.product.nameMy,
       nameEn: item.product.nameEn,
+      /** The product's MAIN photo URL, or null when it has none. */
+      imageUrl: item.product.images[0]?.url ?? null,
       size: item.size,
       quantity: item.quantity,
       unitPriceMmk: item.unitPriceMmk,

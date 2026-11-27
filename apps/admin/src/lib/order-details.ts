@@ -22,6 +22,8 @@ export type OrderItem = {
   name: string
   /** Latin name shown under it, e.g. `Cotton Midi Dress`. Empty when absent. */
   latinName: string
+  /** The product's MAIN photo URL, or `null` when it has none. */
+  imageUrl: string | null
   /** The size picked at checkout: `Size M`, or `One size`. */
   variant: string
   quantity: number
@@ -92,6 +94,7 @@ export function toOrderDetail(order: AdminOrderDetail): OrderDetail {
       id: item.id,
       name: item.nameMy || item.nameEn,
       latinName: item.nameMy ? item.nameEn : "",
+      imageUrl: item.imageUrl,
       variant: variantLabel(item.size),
       quantity: item.quantity,
       unitPriceMmk: item.unitPriceMmk,

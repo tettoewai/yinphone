@@ -64,7 +64,7 @@ export function OrderItemsCard({ order }: { order: OrderDetail }) {
             >
               <TableCell className="py-3 pl-5">
                 <div className="flex items-center gap-3">
-                  <ProductThumb />
+                  <ProductThumb src={item.imageUrl} />
                   <div className="min-w-0">
                     <div className="font-body text-sm leading-[1.7] font-bold text-foreground">
                       {item.name}

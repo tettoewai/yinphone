@@ -37,6 +37,10 @@ const PRODUCT_SUMMARY_SELECT = {
   sizes: true,
   isActive: true,
   category: { select: { id: true, slug: true, nameMy: true, nameEn: true } },
+  // Just the MAIN photo (lowest sort order): the list row shows one thumbnail
+  // and never needs the rest. `PRODUCT_DETAIL_SELECT` below re-selects the full
+  // gallery, so a detail row's `images[0]` is still the MAIN photo.
+  images: { select: { url: true }, orderBy: { sortOrder: 'asc' }, take: 1 },
 } as const;
 
 /** Detail adds what the product form and the storefront card need. */
@@ -80,6 +84,8 @@ function toSummary(row: ProductSummaryRow) {
     sizes: row.sizes,
     isActive: row.isActive,
     category: row.category,
+    /** The MAIN photo's URL, or null when the product has none. */
+    imageUrl: row.images[0]?.url ?? null,
   };
 }
 

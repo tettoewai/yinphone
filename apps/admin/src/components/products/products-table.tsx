@@ -76,7 +76,10 @@ export function ProductsTable({
           >
             <TableCell className="py-3 pl-5">
               <div className="flex items-center gap-3 pr-2">
-                <ProductThumb className="size-12 rounded-md" />
+                <ProductThumb
+                  className="size-12 rounded-md"
+                  src={product.imageUrl}
+                />
                 <div className="max-w-[280px] min-w-0">
                   <div className="truncate font-body text-sm leading-[1.7] font-bold text-foreground">
                     {product.nameMy}

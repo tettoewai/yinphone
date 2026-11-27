@@ -65,6 +65,8 @@ export type AdminOrderItem = {
   slug: string
   nameMy: string
   nameEn: string
+  /** The product's MAIN photo URL, or `null` when it has none. */
+  imageUrl: string | null
   /** `null` for one-size items such as longyi. */
   size: AdminOrderSize | null
   quantity: number
@@ -362,6 +364,8 @@ export type AdminProductSummary = {
   sizes: AdminProductSize[]
   isActive: boolean
   category: AdminProductCategory
+  /** The MAIN photo's URL, or `null` when the product has none. */
+  imageUrl: string | null
 }
 
 export type AdminProductImage = {

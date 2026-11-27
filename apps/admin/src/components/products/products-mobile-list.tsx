@@ -30,7 +30,10 @@ export function ProductsMobileList({
           className="rounded-lg border border-border bg-background p-3.5"
         >
           <div className="flex items-start gap-3">
-            <ProductThumb className="size-12 rounded-md" />
+            <ProductThumb
+              className="size-12 rounded-md"
+              src={product.imageUrl}
+            />
             <div className="min-w-0 flex-1">
               <div className="truncate font-body text-sm leading-[1.7] font-bold text-foreground">
                 {product.nameMy}
