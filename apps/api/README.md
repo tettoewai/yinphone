@@ -12,6 +12,7 @@ admin dashboard (`apps/admin`) under the `/api` prefix.
 ## Setup
 
 ```bash
+docker compose up -d  # from the repo root: Postgres on localhost:5433
 pnpm install          # also generates the Prisma client (postinstall)
 cp .env.example .env  # set DATABASE_URL and SEED_ADMIN_PASSWORD
 pnpm db:migrate       # apply migrations
@@ -420,8 +421,15 @@ Unit tests mock `PrismaService` and never touch a database. E2E tests boot the
 real app against a separate database, so they are skipped unless one is given:
 
 ```bash
-E2E_DATABASE_URL=postgresql://localhost:5432/yinphone_test pnpm test:e2e
+docker exec yinphone-postgres psql -U postgres -c 'CREATE DATABASE yinphone_test'
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/yinphone_test \
+  pnpm --filter api exec prisma migrate deploy
+E2E_DATABASE_URL=postgresql://postgres:postgres@localhost:5433/yinphone_test \
+  pnpm test:e2e
 ```
+
+The suite needs the schema but not the seed data: it creates its own staff user
+and session.
 
 ## Prisma
 

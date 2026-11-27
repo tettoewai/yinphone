@@ -101,7 +101,9 @@ describe.skipIf(!testDatabaseUrl)('API (e2e)', () => {
       .post('/api/auth/logout')
       .expect(204);
 
-    expect(response.headers['set-cookie']).toContain('yp_session=');
+    expect(response.headers['set-cookie']).toEqual(
+      expect.arrayContaining([expect.stringContaining('yp_session=')]),
+    );
   });
 
   describe('password reset', () => {
@@ -192,14 +194,31 @@ describe.skipIf(!testDatabaseUrl)('API (e2e)', () => {
         .get('/api/admin/orders')
         .set('Cookie', sessionCookie)
         .expect((response) => {
-          // 501 while the handler is a setup stub; the point is that the
-          // guards passed, so neither 401 nor 403 is acceptable.
+          // The point is that the guards passed, so neither 401 nor 403 is
+          // acceptable.
           if (response.status === 401 || response.status === 403) {
             throw new Error(
               `STAFF was blocked from /api/admin/orders: ${response.status}`,
             );
           }
         });
+    });
+
+    it('lets STAFF record a manual order', async () => {
+      // An empty item list fails validation before the database is touched, so
+      // a 400 proves the route exists and the session got through the guards.
+      const response = await request(app.getHttpServer())
+        .post('/api/admin/orders')
+        .set('Cookie', sessionCookie)
+        .send({
+          customerName: 'Ma Thida',
+          customerPhone: '09400000001',
+          channel: 'messenger',
+          items: [],
+        })
+        .expect(400);
+
+      expect(response.body).toMatchObject({ statusCode: 400 });
     });
 
     it('blocks STAFF from the owner-only staff routes', async () => {

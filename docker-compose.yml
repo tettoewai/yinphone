@@ -1,0 +1,35 @@
+# Local PostgreSQL for development and e2e runs.
+#
+#   docker compose up -d
+#   pnpm db:migrate && pnpm db:seed
+#
+# The port defaults to 5433, matching the `DATABASE_URL` in `apps/api/.env`.
+# If another Postgres already holds 5433, start this one elsewhere and point
+# `DATABASE_URL` at it instead:
+#
+#   YINPHONE_DB_PORT=5434 docker compose up -d
+#   DATABASE_URL="postgresql://postgres:postgres@localhost:5434/yinphone"
+#
+# Credentials are the conventional local-only defaults. Nothing here is used
+# outside development.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: yinphone-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: yinphone
+    ports:
+      - "${YINPHONE_DB_PORT:-5433}:5432"
+    volumes:
+      - yinphone-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d yinphone"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  yinphone-postgres-data:

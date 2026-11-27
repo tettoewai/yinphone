@@ -24,6 +24,29 @@ compile it themselves, so it needs no build step. `apps/web` lists it in
 
 - Node.js >= 20.9.0
 - pnpm 11 (`corepack enable`)
+- PostgreSQL 17 — `docker-compose.yml` at the root provides one
+
+## Local database
+
+`docker-compose.yml` runs the Postgres the API expects:
+
+```bash
+docker compose up -d   # postgres:17, database `yinphone`, host port 5433
+pnpm db:migrate        # apply migrations
+pnpm db:seed           # channels, categories, products, sample orders, owner user
+```
+
+The container publishes **5433** to match the `DATABASE_URL` in
+`apps/api/.env`. If another Postgres already holds that port, publish it
+elsewhere and point `DATABASE_URL` at the same place:
+
+```bash
+YINPHONE_DB_PORT=5434 docker compose up -d
+# apps/api/.env → postgresql://postgres:postgres@localhost:5434/yinphone
+```
+
+Data lives in the `yinphone-postgres-data` volume, so `docker compose down`
+keeps it and `docker compose down -v` throws it away.
 
 ## Commands
 
