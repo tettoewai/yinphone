@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nestjs",
-  "buildCommand": "pnpm exec turbo build",
+  "buildCommand": "pnpm exec turbo build && pnpm db:seed",
   "outputDirectory": "dist"
 }

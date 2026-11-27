@@ -27,8 +27,16 @@ shared demo account the admin sign-in screen advertises: an `OWNER` at
 `lumi1234` — the value `apps/admin`'s demo card uses — so a development
 checkout gets a working demo login with no extra setup. In production the
 account is only created when `SEED_STAFF_PASSWORD` is set, so a deployed
-database never ends up with a published credential. The demo is an `OWNER` so a
-reviewer sees the whole console; reseeding restores that role.
+database never ends up with a published credential unless it is set on purpose.
+The demo is an `OWNER` so a reviewer sees the whole console; reseeding restores
+that role.
+
+The Vercel build ends with `pnpm db:seed` (see `DEPLOYMENT.md`), so a deployment
+also seeds the demo data it points at: that is the reset button for the public
+demo, and `SEED_STAFF_PASSWORD` is set on the project so the demo `OWNER`
+exists there too.
+
+> > > > > > > SEARCH
 
 Orders are dated relative to the run so the dashboard's seven-day chart is
 never empty: 16 generated orders carry a reserved `YP-DEMO-*` code and are

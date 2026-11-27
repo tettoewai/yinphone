@@ -49,13 +49,13 @@ render (its catalog pages are `force-dynamic` and fetch on every request).
 
 ## 1. API (`apps/api`)
 
-| Setting          | Value                   |
-| ---------------- | ----------------------- |
-| Root Directory   | `apps/api`              |
-| Framework Preset | NestJS (auto-detected)  |
-| Build Command    | `pnpm exec turbo build` |
-| Output Directory | `dist`                  |
-| Install Command  | auto (`pnpm install`)   |
+| Setting          | Value                                   |
+| ---------------- | --------------------------------------- |
+| Root Directory   | `apps/api`                              |
+| Framework Preset | NestJS (auto-detected)                  |
+| Build Command    | `pnpm exec turbo build && pnpm db:seed` |
+| Output Directory | `dist`                                  |
+| Install Command  | auto (`pnpm install`)                   |
 
 ### Why the app is built to `dist` instead of letting the preset trace source
 
@@ -97,6 +97,28 @@ Cannot find module '../../generated/prisma/models.js'
 Generating inside the `build` task also means Turborepo caches the result, so a
 cache hit skips both the generate and the compile.
 
+### Seeding the demo database on deploy
+
+The build command ends with `pnpm db:seed`, so every API deployment reseeds the
+database it points at. That is deliberate for this demo: the seed is idempotent
+(catalogue, channels and categories are upserted, the 16 `YP-DEMO-*` orders are
+re-dated into the last seven days), so the dashboard's chart is never empty and
+redeploying is the reset button after a visitor has edited the public demo.
+
+The demo `OWNER` (`staff@yinphone.shop`) is only created when
+`SEED_STAFF_PASSWORD` is set, because `NODE_ENV` is `production` during a Vercel
+build. Set it on the `yinphone-api` project for Production and Preview
+(`lumi1234`, matching `apps/admin/src/lib/demo-account.ts`) or the deploy will
+seed everything except the demo account.
+
+This is also the only way to seed a database whose `DATABASE_URL` is stored as a
+sensitive variable: `vercel env run` and `vercel env pull` refuse to hand it to
+a local command, but the build environment can use it. To seed locally instead,
+set `DATABASE_URL` yourself and run `pnpm --filter api db:seed`.
+
+The seed runs after `turbo build` as a separate command, not inside a task, so
+it does not affect Turborepo's cache keys.
+
 ### `main.ts` and Vercel's server capture
 
 Vercel's Node runtime patches `http.Server#listen` while importing the
@@ -134,6 +156,7 @@ branch runs, so behaviour is unchanged.
 | `COOKIE_SECURE`                                                                          | no       | Defaults to on because Vercel runs in production mode                                                                                    |
 | `COOKIE_DOMAIN`                                                                          | no       | Only if you want the session cookie shared across subdomains, e.g. `.yinphone.shop`. Leave unset for the normal `api.` + `admin.` setup. |
 | `SESSION_TTL_HOURS`, `SESSION_REMEMBER_DAYS`, `LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_MINUTES` | no       | Defaults are in `apps/api/README.md`                                                                                                     |
+| `SEED_STAFF_PASSWORD`                                                                    | no       | Create the demo `OWNER` during the build's seed step. Production seeds skip that account when it is unset.                               |
 | `PORT`                                                                                   | no       | Leave unset; on Vercel the port is irrelevant because the runtime chooses it                                                             |
 
 Set these for **Production and Preview** unless you keep a separate database.
@@ -166,8 +189,9 @@ curl https://<api-domain>/api/health   # {"status":"ok","db":"up"}
 Turborepo prints a warning during the build that `DATABASE_URL` and
 `CORS_ORIGINS` are set on the project but missing from `turbo.json`. That is
 expected and harmless: both are read at request time by the function, never
-during the build, and declaring them would only make cache keys churn. (If a
-variable ever _is_ read at build time, declare it — see
+during the build, and declaring them would only make cache keys churn. The seed
+step reads `DATABASE_URL` too, but it runs after `turbo build`, outside the
+cache. (If a variable ever _is_ read at build time, declare it — see
 [Adding new environment variables later](#adding-new-environment-variables-later).)
 
 ### API on serverless — what changes
