@@ -568,26 +568,36 @@ async function main() {
   console.log('Seeding admin user...');
   const email = process.env.SEED_ADMIN_EMAIL ?? 'owner@yinphone.example';
   const password = process.env.SEED_ADMIN_PASSWORD;
-  if (!password)
-    throw new Error('Set SEED_ADMIN_PASSWORD in your .env before seeding.');
-  await prisma.adminUser.upsert({
-    where: { email },
+  // A deploy reseeds a database that already has an owner, and the build machine
+  // has no SEED_ADMIN_PASSWORD unless it was set there on purpose. Only the
+  // first run needs one, and no run ever overwrites an existing hash.
+  const owner = await prisma.adminUser.findUnique({ where: { email } });
+
+  if (owner) {
     // Never overwrite an existing password on reseed, but do restore the role:
     // a demo visitor must not be able to demote the shop's owner permanently.
-    update: { role: 'OWNER' },
-    create: {
-      email,
-      name: 'YinPhone Owner',
-      role: 'OWNER',
-      passwordHash: await hash(password, {
-        type: argon2id,
-        memoryCost: 19456, // 19 MiB, OWASP minimum for argon2id
-        timeCost: 2,
-        parallelism: 1,
-      }),
-      mustChangePassword: true,
-    },
-  });
+    await prisma.adminUser.update({
+      where: { email },
+      data: { role: 'OWNER' },
+    });
+  } else if (password) {
+    await prisma.adminUser.create({
+      data: {
+        email,
+        name: 'YinPhone Owner',
+        role: 'OWNER',
+        passwordHash: await hash(password, {
+          type: argon2id,
+          memoryCost: 19456, // 19 MiB, OWASP minimum for argon2id
+          timeCost: 2,
+          parallelism: 1,
+        }),
+        mustChangePassword: true,
+      },
+    });
+  } else {
+    throw new Error('Set SEED_ADMIN_PASSWORD in your .env before seeding.');
+  }
 
   // The demo account the admin sign-in screen advertises. It is seeded by
   // default in development because `apps/admin`'s demo card signs in with

@@ -111,6 +111,11 @@ build. Set it on the `yinphone-api` project for Production and Preview
 (`lumi1234`, matching `apps/admin/src/lib/demo-account.ts`) or the deploy will
 seed everything except the demo account.
 
+`SEED_ADMIN_PASSWORD` is only needed when the database has no shop owner yet. A
+redeploy finds the existing account and restores its `OWNER` role without
+touching the password hash, so the published demo password cannot take over the
+real owner.
+
 This is also the only way to seed a database whose `DATABASE_URL` is stored as a
 sensitive variable: `vercel env run` and `vercel env pull` refuse to hand it to
 a local command, but the build environment can use it. To seed locally instead,
