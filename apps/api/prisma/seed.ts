@@ -2,7 +2,8 @@ import 'dotenv/config';
 import { hash, argon2id } from 'argon2';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/generated/prisma/client.js';
-import type { ProductSize } from '@/generated/prisma/enums.js';
+import type { OrderStatus, ProductSize } from '@/generated/prisma/enums.js';
+import { DAY_MS, startOfYangonDay } from '@/admin/yangon-time.js';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -334,10 +335,39 @@ function imagesFor(slug: string): { url: string; altText: string }[] {
   ];
 }
 
+// ---------- Order timestamps ----------
+const HOUR_MS = 3_600_000;
+
+/**
+ * The Asia/Yangon instant `daysAgo` days back at `hour:minute`, never in the
+ * future: a seed run before that hour pulls the order behind `now`, but no
+ * earlier than the start of its own day.
+ */
+function seededAt(
+  now: Date,
+  {
+    daysAgo,
+    hour,
+    minute = 0,
+    behindMinutes = 1,
+  }: { daysAgo: number; hour: number; minute?: number; behindMinutes?: number },
+) {
+  const dayStart = startOfYangonDay(now).getTime() - daysAgo * DAY_MS;
+  const scheduled = dayStart + hour * HOUR_MS + minute * 60_000;
+  const latest = now.getTime() - behindMinutes * 60_000;
+
+  return new Date(Math.max(dayStart, Math.min(scheduled, latest)));
+}
+
 // ---------- Orders (sample data for the dashboard) ----------
+// `daysAgo` places each order in the seven-day window the dashboard charts; it
+// only applies when the row is first created, so an existing order keeps the
+// timestamp it was seeded with.
 const sampleOrders = [
   {
     code: 'YP-2026-0001',
+    daysAgo: 6,
+    hour: 15,
     customerName: 'Ma Thida',
     customerPhone: '09-400-000-001',
     channel: 'messenger',
@@ -350,6 +380,8 @@ const sampleOrders = [
   },
   {
     code: 'YP-2026-0002',
+    daysAgo: 3,
+    hour: 11,
     customerName: 'Daw Khin',
     customerPhone: '09-400-000-002',
     channel: 'viber',
@@ -359,6 +391,8 @@ const sampleOrders = [
   },
   {
     code: 'YP-2026-0003',
+    daysAgo: 0,
+    hour: 10,
     customerName: 'Ko Aung',
     customerPhone: '09-400-000-003',
     channel: 'telegram',
@@ -368,7 +402,118 @@ const sampleOrders = [
   },
 ];
 
+// ---------- Demo history (so the chart is never empty) ----------
+// The overview charts the last seven Asia/Yangon days. A seed run is a snapshot
+// of one moment, so orders created "now" would leave every earlier column empty
+// and slide out of the window within a week. These orders are dated relative to
+// the run and keyed by a reserved `YP-DEMO-*` code, so reseeding moves the same
+// rows into the current window instead of piling up duplicates. Real orders keep
+// the `YP-<year>-<nnnn>` series, so the two ranges never collide.
+
+/** Orders per day, index 0 being today. Weekends are busier. */
+const DEMO_ORDERS_PER_DAY = [2, 3, 1, 3, 2, 3, 2] as const;
+
+const DEMO_CHANNELS = ['messenger', 'viber', 'telegram'] as const;
+
+const DEMO_CUSTOMERS = [
+  { name: 'Ma Thida', phone: '09-400-000-101' },
+  { name: 'Daw Khin Myo', phone: '09-400-000-102' },
+  { name: 'Ko Aung Kyaw', phone: '09-400-000-103' },
+  { name: 'Ma Su Hlaing', phone: '09-400-000-104' },
+  { name: 'Ko Min Khant', phone: '09-400-000-105' },
+  { name: 'Daw Nu Nu', phone: '09-400-000-106' },
+  { name: 'Ma Ei Phyu', phone: '09-400-000-107' },
+  { name: 'Ko Zaw Lin', phone: '09-400-000-108' },
+];
+
+const DEMO_NOTES = [
+  null,
+  'Gift wrap please.',
+  'Call before delivery.',
+  'Deliver after 5pm.',
+  'Customer asked for the navy colourway.',
+];
+
+/**
+ * Older days are settled and only occasionally torn down; today stays
+ * unconfirmed so the KPI cards and the nav chip have something to count.
+ */
+function demoStatus(daysAgo: number, seq: number): OrderStatus {
+  if (daysAgo === 0) return seq === 1 ? 'NEW' : 'CONFIRMED';
+  if (daysAgo === 1) return 'CONFIRMED';
+  if (daysAgo >= 4 && seq === 2) return 'CANCELLED';
+  return 'DELIVERED';
+}
+
+type CatalogueEntry = { id: string; priceMmk: number; sizes: ProductSize[] };
+
+/**
+ * One or two lines per order, picked from the catalogue by day and position, so
+ * every run produces the same takings.
+ */
+function demoLines(daysAgo: number, seq: number) {
+  const lineCount = (daysAgo + seq) % 3 === 0 ? 2 : 1;
+
+  return Array.from({ length: lineCount }, (_, index) => {
+    const product =
+      products[(daysAgo * 5 + seq * 3 + index * 7) % products.length];
+
+    return {
+      slug: product.slug,
+      quantity: (daysAgo + seq + index) % 3 === 0 ? 2 : 1,
+    };
+  });
+}
+
+function demoOrders(now: Date, catalogue: Record<string, CatalogueEntry>) {
+  return DEMO_ORDERS_PER_DAY.flatMap((count, daysAgo) =>
+    Array.from({ length: count }, (_, index) => {
+      const seq = index + 1;
+      const customer =
+        DEMO_CUSTOMERS[(daysAgo * 3 + seq) % DEMO_CUSTOMERS.length];
+      const channelSlug = DEMO_CHANNELS[(daysAgo + seq) % DEMO_CHANNELS.length];
+
+      const items = demoLines(daysAgo, seq).map((line) => {
+        const entry = catalogue[line.slug];
+        if (!entry) throw new Error(`Unknown demo product "${line.slug}".`);
+
+        return {
+          productId: entry.id,
+          quantity: line.quantity,
+          unitPriceMmk: entry.priceMmk,
+          size: entry.sizes.length
+            ? entry.sizes[(daysAgo + seq) % entry.sizes.length]
+            : null,
+        };
+      });
+
+      return {
+        code: `YP-DEMO-${daysAgo}-${seq}`,
+        createdAt: seededAt(now, {
+          daysAgo,
+          // Spread through the working day, 09:00–19:00 Asia/Yangon.
+          hour: 9 + ((daysAgo * 2 + seq * 3) % 11),
+          minute: (daysAgo * 7 + seq * 17) % 60,
+          behindMinutes: 5 + seq * 5,
+        }),
+        status: demoStatus(daysAgo, seq),
+        channelSlug,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        note: DEMO_NOTES[(daysAgo + seq) % DEMO_NOTES.length],
+        totalMmk: items.reduce(
+          (sum, item) => sum + item.quantity * item.unitPriceMmk,
+          0,
+        ),
+        items,
+      };
+    }),
+  );
+}
+
 async function main() {
+  const now = new Date();
+
   console.log('Seeding channels...');
   for (const c of channels) {
     await prisma.channel.upsert({
@@ -388,7 +533,7 @@ async function main() {
   }
 
   console.log('Seeding products and images...');
-  const productIds: Record<string, { id: string; priceMmk: number }> = {};
+  const productIds: Record<string, CatalogueEntry> = {};
   for (const p of products) {
     const category = await prisma.category.findUniqueOrThrow({
       where: { slug: p.category },
@@ -399,7 +544,11 @@ async function main() {
       update: { ...data, categoryId: category.id },
       create: { ...data, categoryId: category.id },
     });
-    productIds[p.slug] = { id: product.id, priceMmk: product.priceMmk };
+    productIds[p.slug] = {
+      id: product.id,
+      priceMmk: product.priceMmk,
+      sizes: product.sizes,
+    };
 
     // Re-create images so reruns don't duplicate them
     await prisma.productImage.deleteMany({ where: { productId: product.id } });
@@ -423,7 +572,9 @@ async function main() {
     throw new Error('Set SEED_ADMIN_PASSWORD in your .env before seeding.');
   await prisma.adminUser.upsert({
     where: { email },
-    update: {}, // never overwrite an existing admin's password on reseed
+    // Never overwrite an existing password on reseed, but do restore the role:
+    // a demo visitor must not be able to demote the shop's owner permanently.
+    update: { role: 'OWNER' },
     create: {
       email,
       name: 'YinPhone Owner',
@@ -438,19 +589,34 @@ async function main() {
     },
   });
 
-  // Optional: the demo account advertised by apps/admin/design/admin-login.html.
-  // Opt-in so no portfolio password can reach a real deployment.
-  const staffPassword = process.env.SEED_STAFF_PASSWORD;
-  if (staffPassword) {
-    console.log('Seeding demo staff user...');
+  // The demo account the admin sign-in screen advertises. It is seeded by
+  // default in development because `apps/admin`'s demo card signs in with
+  // exactly this pair; anywhere else it needs `SEED_STAFF_PASSWORD`, so a
+  // production database never ends up with a published credential.
+  //
+  // It is an OWNER like the shop's own account: a reviewer gets the whole
+  // console, Settings and Channels included, rather than a read-only tour with
+  // access-denied screens. Reseeding is the reset button — see the role restore
+  // above.
+
+  /** Mirrors the default in `apps/admin/src/lib/demo-account.ts`. */
+  const DEMO_STAFF_PASSWORD = 'lumi1234';
+  const demoEmail = process.env.SEED_STAFF_EMAIL ?? 'staff@yinphone.shop';
+  const demoPassword =
+    process.env.SEED_STAFF_PASSWORD ??
+    (process.env.NODE_ENV === 'production' ? undefined : DEMO_STAFF_PASSWORD);
+
+  if (demoPassword) {
+    console.log('Seeding the demo admin...');
     await prisma.adminUser.upsert({
-      where: { email: process.env.SEED_STAFF_EMAIL ?? 'staff@yinphone.shop' },
-      update: {},
+      where: { email: demoEmail },
+      // Keep an existing password, but restore the demo's full access and name.
+      update: { role: 'OWNER', name: 'YinPhone Demo' },
       create: {
-        email: process.env.SEED_STAFF_EMAIL ?? 'staff@yinphone.shop',
-        name: 'YinPhone Staff',
-        role: 'STAFF',
-        passwordHash: await hash(staffPassword, {
+        email: demoEmail,
+        name: 'YinPhone Demo',
+        role: 'OWNER',
+        passwordHash: await hash(demoPassword, {
           type: argon2id,
           memoryCost: 19456,
           timeCost: 2,
@@ -459,6 +625,8 @@ async function main() {
         mustChangePassword: false,
       },
     });
+  } else {
+    console.log('Skipping the demo admin (set SEED_STAFF_PASSWORD).');
   }
 
   console.log('Seeding sample orders...');
@@ -483,6 +651,7 @@ async function main() {
       update: {}, // idempotent: don't change existing orders on reseed
       create: {
         code: o.code,
+        createdAt: seededAt(now, { daysAgo: o.daysAgo, hour: o.hour }),
         customerName: o.customerName,
         customerPhone: o.customerPhone,
         channelId: channel.id,
@@ -490,6 +659,45 @@ async function main() {
         note: o.note,
         totalMmk,
         items: { create: itemsData },
+      },
+    });
+  }
+
+  console.log('Seeding the last seven days of demo orders...');
+  const channelIdBySlug = new Map<string, string>();
+  for (const channel of await prisma.channel.findMany({
+    select: { slug: true, id: true },
+  })) {
+    channelIdBySlug.set(channel.slug, channel.id);
+  }
+
+  for (const o of demoOrders(now, productIds)) {
+    const channelId = channelIdBySlug.get(o.channelSlug);
+    if (!channelId) throw new Error(`Unknown demo channel "${o.channelSlug}".`);
+
+    const data = {
+      status: o.status,
+      channelId,
+      customerName: o.customerName,
+      customerPhone: o.customerPhone,
+      note: o.note,
+      totalMmk: o.totalMmk,
+    };
+
+    await prisma.order.upsert({
+      where: { code: o.code },
+      // Unlike the sample orders, reseeding re-dates these rows and re-prices
+      // their lines, so the chart always covers the current week.
+      update: {
+        ...data,
+        createdAt: o.createdAt,
+        items: { deleteMany: {}, create: o.items },
+      },
+      create: {
+        ...data,
+        code: o.code,
+        createdAt: o.createdAt,
+        items: { create: o.items },
       },
     });
   }

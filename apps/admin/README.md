@@ -63,6 +63,25 @@ it **in memory only** — never in `localStorage`, `sessionStorage` or the URL.
 Reloading the reset screen drops it and the user signs in again, which is the
 intended failure mode for a credential.
 
+## Demo account
+
+`pnpm db:seed` in `apps/api` creates a shared demo account for reviewers:
+`staff@yinphone.shop` / `lumi1234` in development, and only with
+`SEED_STAFF_PASSWORD` in production. The sign-in screen then shows that pair
+with a one-tap **Demo sign in** (`src/lib/demo-account.ts`). The tap posts to
+the normal `/api/auth/login` route, so it gets the same rate limit, lockout and
+error banners as a typed sign-in — nothing bypasses the password.
+
+The card is controlled by `VITE_DEMO_LOGIN`: on under `pnpm dev`, off in a
+production build unless the build sets it to `on`. Point `VITE_DEMO_EMAIL` /
+`VITE_DEMO_PASSWORD` at the seeded pair when you override the seed defaults.
+
+The demo account is an `OWNER`, so it reaches every screen, `/channels` and
+`/settings` included — a reviewer gets the whole console, not an access-denied
+tour. That also means it can invite, demote and remove the other admins, and
+edit any data; `pnpm db:seed` is the reset button, and reseeding restores both
+its role and the shop owner's.
+
 ## Password reset
 
 `/forgot-password` is a four-step flow — email → 6-digit code → new password →
@@ -197,9 +216,12 @@ Copy `.env.example` to `.env` and adjust. Only `VITE_`-prefixed variables
 reach the browser, and Vite inlines them into the bundle at build time, so
 treat them as public — no secrets.
 
-| Variable       | Default | Purpose                                                                                  |
-| -------------- | ------- | ---------------------------------------------------------------------------------------- |
-| `VITE_API_URL` | `/api`  | Absolute API base URL. Only needed when the admin is on a different origin than the API. |
+| Variable             | Default               | Purpose                                                                                                               |
+| -------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `VITE_API_URL`       | `/api`                | Absolute API base URL. Only needed when the admin is on a different origin than the API.                              |
+| `VITE_DEMO_LOGIN`    | dev `on`, prod `off`  | Show the demo-account card on `/login`. Set `on` for a portfolio deployment whose seed created the demo `STAFF` user. |
+| `VITE_DEMO_EMAIL`    | `staff@yinphone.shop` | Email the demo card signs in with; keep it in step with `SEED_STAFF_EMAIL`.                                           |
+| `VITE_DEMO_PASSWORD` | `lumi1234`            | Password the demo card signs in with; keep it in step with `SEED_STAFF_PASSWORD`.                                     |
 
 The default is same-origin, which is what `pnpm dev` and `pnpm start` proxy to
 `http://localhost:4000` in `vite.config.ts`, so local development needs no

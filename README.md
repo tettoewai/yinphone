@@ -63,7 +63,7 @@ pnpm format     # prettier --write (not cached)
 pnpm clean      # remove build output
 pnpm db:generate  # regenerate the Prisma client
 pnpm db:migrate   # apply migrations
-pnpm db:seed      # seed channels, products, sample orders
+pnpm db:seed      # seed channels, products, a week of demo orders, users
 ```
 
 Scope to a single app with a filter:

@@ -4,6 +4,7 @@ import {
   CircleExclamationPoint,
   CloudOff,
   Info,
+  KeyRound,
   LoaderCircle,
   Store,
   Timer,
@@ -16,6 +17,7 @@ import { CheckboxField, PasswordField, TextField } from "@/components/field"
 import { useSession } from "@/auth/session-context"
 import { ApiError } from "@/lib/api"
 import { MESSENGER_URL } from "@/lib/contact"
+import { DEMO_ACCOUNT } from "@/lib/demo-account"
 import { forgetPassword, rememberPassword } from "@/lib/pending-password"
 import { ROUTES } from "@/lib/routes"
 
@@ -175,6 +177,62 @@ function FailureBanner({
   )
 }
 
+/**
+ * The shared demo account from the design's review notes: the credentials are
+ * on screen, and one tap signs in through this same form so the reviewer gets
+ * the real STAFF experience, rate limits and error banners included.
+ */
+function DemoAccountCard({
+  busy,
+  disabled,
+  onUse,
+}: {
+  busy: boolean
+  disabled: boolean
+  onUse: () => void
+}) {
+  if (!DEMO_ACCOUNT) return null
+
+  return (
+    <div className="flex flex-col gap-2.5 rounded-md border border-dashed border-border bg-secondary/40 px-3.5 py-3">
+      <div className="flex items-start gap-2.5">
+        <KeyRound
+          className="mt-0.5 size-4 shrink-0 text-primary"
+          strokeWidth={3}
+        />
+        <div className="min-w-0">
+          <p className="font-body text-xs leading-[1.7] font-bold text-foreground">
+            ဒီမိုအကောင့် • Demo account
+          </p>
+          <p className="text-xs break-all text-muted-foreground">
+            {DEMO_ACCOUNT.email} / {DEMO_ACCOUNT.password}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Sample data only • For portfolio review
+          </p>
+        </div>
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onUse}
+        disabled={disabled}
+        className="min-h-11 w-full rounded-md text-sm font-semibold"
+      >
+        {busy ? (
+          <>
+            <LoaderCircle className="size-[15px] animate-spin" />
+            ဝင်ရန် • Signing in
+          </>
+        ) : (
+          "ဒီမိုအကောင့်ဖြင့် ဝင်ရန် • Demo sign in"
+        )}
+      </Button>
+    </div>
+  )
+}
+
 export function LoginPage() {
   const { signIn } = useSession()
 
@@ -207,17 +265,18 @@ export function LoginPage() {
     return () => window.clearTimeout(timer)
   }, [lockRemaining])
 
-  const submit = async () => {
+  const submit = async (credentials?: { email: string; password: string }) => {
     if (submitting || locked) return
 
-    const trimmedEmail = email.trim()
+    const trimmedEmail = (credentials?.email ?? email).trim()
+    const candidatePassword = credentials?.password ?? password
     const nextEmailError = !trimmedEmail
       ? "အီးမေးလ် ဖြည့်ရန် လိုအပ်ပါတယ် • Enter your email"
       : !trimmedEmail.includes("@")
         ? "အီးမေးလ် ပုံစံ မမှန်ပါ • Enter a valid email address"
         : undefined
     const nextPasswordError =
-      password.length < MIN_PASSWORD_LENGTH
+      candidatePassword.length < MIN_PASSWORD_LENGTH
         ? "စကားဝှက် ဖြည့်ရန် လိုအပ်ပါတယ် • Min 8 characters"
         : undefined
 
@@ -232,14 +291,14 @@ export function LoginPage() {
     try {
       const user = await signIn({
         email: trimmedEmail,
-        password,
+        password: candidatePassword,
         rememberDevice,
       })
 
       // The reset screen has no current-password field, so the password just
       // used is kept in memory for it — and only when a reset is actually due.
       if (user.mustChangePassword) {
-        rememberPassword(password)
+        rememberPassword(candidatePassword)
       }
     } catch (error) {
       forgetPassword()
@@ -259,6 +318,11 @@ export function LoginPage() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     void submit()
+  }
+
+  const signInAsDemo = () => {
+    if (!DEMO_ACCOUNT) return
+    void submit(DEMO_ACCOUNT)
   }
 
   return (
@@ -368,6 +432,12 @@ export function LoginPage() {
             shop owner.
           </p>
         </div>
+
+        <DemoAccountCard
+          busy={submitting}
+          disabled={submitting || locked}
+          onUse={signInAsDemo}
+        />
       </div>
     </AuthShell>
   )

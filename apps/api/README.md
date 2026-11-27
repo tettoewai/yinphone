@@ -16,14 +16,26 @@ docker compose up -d  # from the repo root: Postgres on localhost:5433
 pnpm install          # also generates the Prisma client (postinstall)
 cp .env.example .env  # set DATABASE_URL and SEED_ADMIN_PASSWORD
 pnpm db:migrate       # apply migrations
-pnpm db:seed          # channels, categories, products, sample orders, owner user
+pnpm db:seed          # channels, categories, products, a week of demo orders, users
 pnpm dev              # http://localhost:4000/api
 ```
 
-The seed signs in as `owner@yinphone.example` by default. To reproduce the
-demo account advertised by the admin login mock, add
-`SEED_STAFF_PASSWORD=lumi1234` before `pnpm db:seed`; it creates a `STAFF`
-user at `SEED_STAFF_EMAIL` (default `staff@yinphone.shop`).
+The seed signs in as `owner@yinphone.example` by default. It also creates the
+shared demo account the admin sign-in screen advertises: an `OWNER` at
+`SEED_STAFF_EMAIL` (default `staff@yinphone.shop`) with
+`SEED_STAFF_PASSWORD`. Outside production that password defaults to
+`lumi1234` — the value `apps/admin`'s demo card uses — so a development
+checkout gets a working demo login with no extra setup. In production the
+account is only created when `SEED_STAFF_PASSWORD` is set, so a deployed
+database never ends up with a published credential. The demo is an `OWNER` so a
+reviewer sees the whole console; reseeding restores that role.
+
+Orders are dated relative to the run so the dashboard's seven-day chart is
+never empty: 16 generated orders carry a reserved `YP-DEMO-*` code and are
+re-dated and re-priced on every reseed, while the three hand-written
+`YP-<year>-<nnnn>` sample orders keep the timestamp they were first created
+with. Real orders continue that same `YP-<year>-<nnnn>` series, so the two
+ranges never collide.
 
 ## Environment
 
@@ -41,8 +53,8 @@ user at `SEED_STAFF_EMAIL` (default `staff@yinphone.shop`).
 | `COOKIE_DOMAIN`                 | no        | host-only                                     | e.g. `.yinphone.shop` for subdomains     |
 | `SEED_ADMIN_EMAIL`              | no        | `owner@yinphone.example`                      | Seed script only                         |
 | `SEED_ADMIN_PASSWORD`           | seed only | –                                             | Required by `db:seed`                    |
-| `SEED_STAFF_EMAIL`              | no        | `staff@yinphone.shop`                         | Seed script only, demo account           |
-| `SEED_STAFF_PASSWORD`           | no        | –                                             | Seed only; creates the demo `STAFF` user |
+| `SEED_STAFF_EMAIL`              | no        | `staff@yinphone.shop`                         | Seed script only, demo account email     |
+| `SEED_STAFF_PASSWORD`           | no        | `lumi1234` in development, – in production    | Creates the demo `OWNER` account         |
 | `RESEND_API_KEY`                | prod      | –                                             | Resend key for password-reset email      |
 | `RESET_EMAIL_FROM`              | no        | `YinPhone Boutique <onboarding@resend.dev>`   | Verified Resend sender address           |
 | `RESET_CODE_TTL_MINUTES`        | no        | `10`                                          | Code/ticket lifetime                     |
