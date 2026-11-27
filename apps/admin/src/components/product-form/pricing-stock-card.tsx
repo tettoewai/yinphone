@@ -4,12 +4,29 @@ import { Minus, Plus } from "lucide-react"
 
 import { Field } from "@/components/field"
 import { FormCard } from "@/components/product-form/form-card"
+import type { AdminProductSize } from "@/lib/api"
 import {
   formatPriceDigits,
   priceDigitsFrom,
   type DraftField,
   type ProductDraft,
 } from "@/lib/product-form"
+
+/** The order the chips render in, also the order saved to the product. */
+const SIZE_OPTIONS: readonly AdminProductSize[] = ["S", "M", "L", "XL"]
+
+function toggleSize(
+  current: readonly AdminProductSize[],
+  size: AdminProductSize
+) {
+  if (current.includes(size)) {
+    return current.filter((option) => option !== size)
+  }
+
+  return [...current, size].sort(
+    (a, b) => SIZE_OPTIONS.indexOf(a) - SIZE_OPTIONS.indexOf(b)
+  )
+}
 
 type PricingStockCardProps = {
   draft: ProductDraft
@@ -18,7 +35,7 @@ type PricingStockCardProps = {
   onBlurField: (field: DraftField) => void
 }
 
-/** Card 2: price, stock and the Active toggle that publishes the product. */
+/** Card 2: price, stock, sizes and the Active toggle that publishes the product. */
 export function PricingStockCard({
   draft,
   onChange,
@@ -97,6 +114,39 @@ export function PricingStockCard({
           </div>
         </div>
       </div>
+
+      <Field
+        id="product-sizes"
+        label="အရွယ်အစား"
+        labelEn="Sizes — optional"
+        hint="Leave every size off for one-size items such as longyi."
+      >
+        <div className="flex flex-wrap gap-1.5">
+          {SIZE_OPTIONS.map((size) => {
+            const on = draft.sizes.includes(size)
+
+            return (
+              <button
+                key={size}
+                type="button"
+                aria-pressed={on}
+                aria-label={`Size ${size}`}
+                onClick={() =>
+                  onChange({ sizes: toggleSize(draft.sizes, size) })
+                }
+                className={cn(
+                  "min-h-11 min-w-12 rounded-md border-2 text-sm font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                  on
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-foreground hover:bg-muted"
+                )}
+              >
+                {size}
+              </button>
+            )
+          })}
+        </div>
+      </Field>
 
       <div className="flex min-h-14 items-center justify-between gap-3 rounded-md border border-border bg-background px-3.5">
         <div className="min-w-0">

@@ -5,9 +5,9 @@ type UnsavedChangesBannerProps = {
 }
 
 /**
- * The amber strip from the design. "Discard" empties the editor rather than
- * restoring the seeded draft: this screen never saved anything, so the blank
- * form is the only state it can honestly go back to.
+ * The amber strip from the design. "Discard" drops the local edits: the add form
+ * goes back to a blank editor and the edit form goes back to the values the API
+ * returned.
  */
 export function UnsavedChangesBanner({ onDiscard }: UnsavedChangesBannerProps) {
   return (

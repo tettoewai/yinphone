@@ -44,6 +44,7 @@ export function AdminTopbar({ onOpenNav }: AdminTopbarProps) {
   // The screens that add a crumb of their own; the last segment names it.
   const orderDetail = useMatch(ROUTES.orderDetail)
   const productNew = useMatch(ROUTES.productNew)
+  const productEdit = useMatch(ROUTES.productEdit)
 
   return (
     <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6">
@@ -61,7 +62,7 @@ export function AdminTopbar({ onOpenNav }: AdminTopbarProps) {
           className="hidden size-[13px] shrink-0 sm:block"
           strokeWidth={3.7}
         />
-        {productNew ? (
+        {productNew || productEdit ? (
           <>
             <Link
               to={ROUTES.products}
@@ -71,7 +72,7 @@ export function AdminTopbar({ onOpenNav }: AdminTopbarProps) {
             </Link>
             <ChevronRight className="size-[13px] shrink-0" strokeWidth={3.7} />
             <span className="truncate font-semibold text-foreground">
-              Add product
+              {productEdit ? "Edit product" : "Add product"}
             </span>
           </>
         ) : orderDetail ? (

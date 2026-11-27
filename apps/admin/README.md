@@ -116,9 +116,19 @@ Writes go straight to the API: order status changes (`PATCH .../status`), a
 product's hide/show toggle and visibility switch (`PATCH .../visibility`),
 duplicate (`POST .../duplicate`) and the Undo that hides the row again or
 deletes the copy. The products banner keeps its 10-second Undo window. Anything
-without an endpoint yet (manual order, editing an existing product,
-`/products/new`) is still a disabled placeholder — the add form validates a
-local draft only.
+without an endpoint yet (manual order) is still a disabled placeholder.
+
+The product editor (`/products/new` and `/products/:id/edit`) creates with
+`POST /api/admin/products` and updates with `PATCH /api/admin/products/:id`.
+Edit mode loads `GET /api/admin/products/:id` and seeds the same four cards;
+both modes keep the draft local until Save, validate the required name, category
+and price in the browser, and return to the list once the request settles. The
+category select reads `GET /api/admin/categories`, and `sizes` is the S/M/L/XL
+chip row (all off means one-size). Images are a full replacement: the editor
+sends the ordered grid it shows, so removing a photo removes it from the
+product. There is no upload endpoint yet, so a picked file only previews through
+an object URL and is left out of the payload — a pasted http(s) URL is what
+saves an image. The editor says so rather than implying the file was uploaded.
 
 `/categories` creates, renames and deletes through the API; dragging a row
 writes the new `sortOrder` for every row that moved. Delete stays disabled while

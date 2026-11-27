@@ -91,6 +91,7 @@ export default function App() {
           <Route path={ROUTES.orderDetail} element={<OrderDetailsPage />} />
           <Route path={ROUTES.products} element={<ProductsPage />} />
           <Route path={ROUTES.productNew} element={<ProductFormPage />} />
+          <Route path={ROUTES.productEdit} element={<ProductFormPage />} />
           <Route path={ROUTES.categories} element={<CategoriesPage />} />
           {/* Channel links are an OWNER-only write (POST/PATCH), so the screen
               is gated like Settings rather than letting STAFF hit a 403 on save. */}

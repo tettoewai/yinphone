@@ -9,23 +9,12 @@
 
 import type { AdminProductSummary } from "@/lib/api"
 
-/** A category as the filter dropdown and the product form draw it. */
+/** A category as the filter dropdown draws it. */
 export type ProductCategory = {
   slug: string
   nameMy: string
   nameEn: string
 }
-
-/**
- * The shop's categories for the product form. The list screen reads the real
- * `GET /api/admin/categories`; this literal stays until the form is wired.
- */
-export const PRODUCT_CATEGORIES: readonly ProductCategory[] = [
-  { slug: "dresses", nameMy: "ဂါဝန်", nameEn: "Dresses" },
-  { slug: "tops", nameMy: "အပေါ်ထပ်", nameEn: "Tops" },
-  { slug: "skirts", nameMy: "စကတ်", nameEn: "Skirts" },
-  { slug: "trousers", nameMy: "ဘောင်းဘီ", nameEn: "Trousers" },
-]
 
 /** One row of the products table. `GET /api/admin/products` returns this shape. */
 export type ProductSummary = AdminProductSummary

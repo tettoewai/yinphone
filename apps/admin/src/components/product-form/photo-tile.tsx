@@ -1,6 +1,6 @@
 import { GripVertical, Shirt, X } from "lucide-react"
 
-import type { ProductPhoto } from "@/lib/product-form"
+import { isSavedPhoto, type ProductPhoto } from "@/lib/product-form"
 
 type PhotoTileProps = {
   photo: ProductPhoto
@@ -16,9 +16,9 @@ type PhotoTileProps = {
  * One photo in the editor's grid.
  *
  * Tiles are drag sources and drop targets so the first slot — the one the
- * storefront uses as the main photo — can be changed by dragging. Uploaded
- * files render their object URL; the seeded samples render the garment glyph
- * because the repo ships no product images.
+ * storefront uses as the main photo — can be changed by dragging. A saved URL
+ * renders the image; a file picked in this tab renders its object URL and is
+ * labelled as local, because it is not sent to the API.
  */
 export function PhotoTile({
   photo,
@@ -88,7 +88,7 @@ export function PhotoTile({
           <div className="h-full w-full rounded-sm bg-primary" />
         </div>
         <div className="pt-1 text-[11px] text-muted-foreground">
-          {photo.url ? "Uploaded" : "Sample"}
+          {isSavedPhoto(photo) ? "Saved" : "Local only"}
         </div>
       </div>
     </div>

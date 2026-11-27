@@ -1,16 +1,23 @@
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
-import { CloudUpload, FolderOpen, Info } from "lucide-react"
+import { CloudUpload, FolderOpen, Info, TriangleAlert } from "lucide-react"
 import { useRef, useState } from "react"
 
 import { FormCard } from "@/components/product-form/form-card"
 import { PhotoTile } from "@/components/product-form/photo-tile"
 import { ShopCardPreview } from "@/components/product-form/shop-card-preview"
-import { MAX_PHOTOS, type ProductPhoto } from "@/lib/product-form"
+import {
+  MAX_PHOTOS,
+  isHttpUrl,
+  isSavedPhoto,
+  type ProductPhoto,
+} from "@/lib/product-form"
 
 type PhotosCardProps = {
   photos: readonly ProductPhoto[]
-  onAdd: (files: readonly File[]) => void
+  onAddFiles: (files: readonly File[]) => void
+  onAddUrl: (url: string) => void
   onRemove: (id: string) => void
   onReorder: (from: number, to: number) => void
   /** Values for the shop-card preview under the grid. */
@@ -20,13 +27,15 @@ type PhotosCardProps = {
 /**
  * Card 4: the dropzone, the grid of photos and the shop-card preview.
  *
- * Files never leave the browser — they become object URLs owned by the page —
- * so every tile is "Uploaded" as soon as it is picked rather than pretending to
- * stream somewhere. Reordering happens by dragging a tile onto another.
+ * Photos are stored as URLs, but there is no upload endpoint yet, so the
+ * dropzone only previews a picked file locally — a "Add photo by URL" field is
+ * how an image actually reaches the product. The card says so rather than
+ * letting a picked file look saved.
  */
 export function PhotosCard({
   photos,
-  onAdd,
+  onAddFiles,
+  onAddUrl,
   onRemove,
   onReorder,
   preview,
@@ -34,12 +43,35 @@ export function PhotosCard({
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [urlValue, setUrlValue] = useState("")
+  const [urlError, setUrlError] = useState<string | null>(null)
 
   const full = photos.length >= MAX_PHOTOS
+  const localOnly = photos.filter((photo) => !isSavedPhoto(photo)).length
 
   function pick(list: FileList | null) {
     if (!list) return
-    onAdd([...list])
+    onAddFiles([...list])
+  }
+
+  function submitUrl() {
+    const value = urlValue.trim()
+
+    if (full) {
+      setUrlError("Photo limit reached — remove one first.")
+      return
+    }
+
+    if (!isHttpUrl(value)) {
+      setUrlError(
+        "Enter a full http(s) URL • e.g. https://example.com/photo.jpg"
+      )
+      return
+    }
+
+    onAddUrl(value)
+    setUrlValue("")
+    setUrlError(null)
   }
 
   function dropAt(index: number) {
@@ -104,6 +136,54 @@ export function PhotosCard({
         />
       </div>
 
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          submitUrl()
+        }}
+        className="flex flex-col gap-1.5"
+      >
+        <label
+          htmlFor="product-photo-url"
+          className="font-body text-sm font-semibold text-foreground"
+        >
+          ဓာတ်ပုံ link{" "}
+          <span className="text-xs font-normal text-muted-foreground">
+            • Add photo by URL
+          </span>
+        </label>
+        <div className="flex gap-2">
+          <Input
+            id="product-photo-url"
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            value={urlValue}
+            disabled={full}
+            onChange={(event) => {
+              setUrlValue(event.target.value)
+              setUrlError(null)
+            }}
+            placeholder="https://…"
+            aria-invalid={urlError ? true : undefined}
+            className="h-12 rounded-md border-border bg-background text-sm text-foreground"
+          />
+          <Button
+            type="submit"
+            variant="secondary"
+            disabled={full}
+            className="min-h-12 shrink-0 px-4 text-sm font-bold"
+          >
+            Add
+          </Button>
+        </div>
+        {urlError ? (
+          <p className="font-body text-xs leading-[1.7] text-accent-foreground">
+            {urlError}
+          </p>
+        ) : null}
+      </form>
+
       <div className="grid grid-cols-3 gap-2.5">
         {photos.map((photo, index) => (
           <PhotoTile
@@ -118,6 +198,20 @@ export function PhotosCard({
           />
         ))}
       </div>
+
+      {localOnly > 0 ? (
+        <div className="flex gap-2 rounded-md border border-accent bg-accent/10 px-3.5 py-2.5 font-body text-xs leading-[1.7] text-accent-foreground">
+          <TriangleAlert
+            className="mt-0.5 size-3.5 shrink-0"
+            strokeWidth={3.4}
+          />
+          <span>
+            {localOnly} file{localOnly === 1 ? "" : "s"} picked in this browser
+            will not be saved — photo uploads are not connected yet. Add a photo
+            URL to keep an image with the product.
+          </span>
+        </div>
+      ) : null}
 
       <div className="flex gap-2 rounded-md border border-border bg-background px-3.5 py-2.5 font-body text-xs leading-[1.7] text-muted-foreground">
         <Info

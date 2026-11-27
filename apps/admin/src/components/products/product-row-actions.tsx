@@ -1,7 +1,10 @@
-import { Button } from "@workspace/ui/components/button"
+import { Button, buttonVariants } from "@workspace/ui/components/button"
+import { cn } from "@workspace/ui/lib/utils"
 import { Copy, Pencil, Trash2 } from "lucide-react"
+import { Link } from "react-router-dom"
 
 import type { ProductSummary } from "@/lib/products"
+import { productEditPath } from "@/lib/routes"
 
 type ProductRowActionsProps = {
   product: ProductSummary
@@ -12,10 +15,9 @@ type ProductRowActionsProps = {
 /**
  * Edit / duplicate / hide.
  *
- * Edit is the one action with no screen behind it yet — the add form has no
- * edit mode — so it renders disabled with a title rather than linking to the
- * catch-all redirect. Duplicate and hide act on the row in place — both offer
- * Undo in the banner above the list.
+ * Edit opens the same editor the add screen uses, seeded from
+ * `GET /api/admin/products/:id`. Duplicate and hide act on the row in place —
+ * both offer Undo in the banner above the list.
  */
 export function ProductRowActions({
   product,
@@ -24,15 +26,18 @@ export function ProductRowActions({
 }: ProductRowActionsProps) {
   return (
     <div className="flex justify-end gap-1.5">
-      <Button
-        variant="outline"
-        disabled
-        title="Editing an existing product is coming soon"
-        className="min-h-11 gap-1 rounded-md px-3 text-[13px] font-semibold text-primary"
+      <Link
+        to={productEditPath(product.id)}
+        aria-label={`Edit ${product.nameEn}`}
+        title="Edit product"
+        className={cn(
+          buttonVariants({ variant: "outline" }),
+          "min-h-11 gap-1 rounded-md px-3 text-[13px] font-semibold text-primary"
+        )}
       >
         <Pencil className="size-3.5" strokeWidth={3.4} />
         Edit
-      </Button>
+      </Link>
       <Button
         variant="outline"
         size="icon"

@@ -1,40 +1,47 @@
 /**
- * Types and the pure helpers behind the add-product form (`/products/new`).
+ * Types and the pure helpers behind the product editor (`/products/new` and
+ * `/products/:id/edit`).
  *
  * Nothing here imports React. The draft is kept as strings (not parsed numbers)
  * because the price field has to preserve exactly what the user typed while it
- * groups digits, and because the same shape is what a `POST /api/products`
- * body would be built from once the endpoint exists.
- *
- * The seeded draft mirrors the design's demo state: a restored draft that is
- * still missing its English name. That is why `nameEn` starts empty and shows
- * its error immediately instead of waiting for a blur.
+ * groups digits, and because the same shape is what the create and update
+ * bodies are built from.
  */
+
+import type {
+  AdminProductDetail,
+  AdminProductSize,
+  CreateProductBody,
+} from "@/lib/api"
 
 /** The description counter in the design ("86 / 500"). */
 export const DESCRIPTION_LIMIT = 500
 
-/** The design's Photos (4/6) cap. */
+/** The design's Photos (4/6) cap, and the editor's own limit on images. */
 export const MAX_PHOTOS = 6
 
 /**
- * A photo in the editor. `url` is an object URL from a picked file; `null`
- * means one of the seeded sample tiles, which render the garment glyph because
- * the repo has no product images to ship.
+ * A photo in the editor. `url` is either an http(s) address that is saved with
+ * the product or a `blob:` object URL for a file picked in this tab; `null`
+ * renders the garment glyph.
  */
 export type ProductPhoto = {
   id: string
   url: string | null
+  /** Saved alongside the image; `null` when the shop did not describe it. */
+  altText?: string | null
 }
 
 export type ProductDraft = {
   nameMy: string
   nameEn: string
-  /** Category slug, or `""` before one is chosen. */
+  /** Category **id**, or `""` before one is chosen. */
   category: string
   /** Digits only; `formatPriceDigits` adds the grouping. */
   price: string
   stock: number
+  /** Empty means one size fits all, e.g. longyi. */
+  sizes: AdminProductSize[]
   descriptionMy: string
   descriptionEn: string
   isActive: boolean
@@ -94,10 +101,31 @@ export function isDraftBlank(draft: ProductDraft) {
     draft.category === "" &&
     draft.price === "" &&
     draft.stock === 0 &&
+    draft.sizes.length === 0 &&
     draft.descriptionMy === "" &&
     draft.descriptionEn === "" &&
     draft.photos.length === 0
   )
+}
+
+/**
+ * A photo the API can store. Picked files exist only as `blob:` object URLs
+ * until there is an upload endpoint, so they never reach the payload.
+ */
+export function isSavedPhoto(
+  photo: ProductPhoto
+): photo is ProductPhoto & { url: string } {
+  return photo.url !== null && !photo.url.startsWith("blob:")
+}
+
+/** How many picked files will be left out of the save. */
+export function localOnlyPhotoCount(photos: readonly ProductPhoto[]) {
+  return photos.filter((photo) => !isSavedPhoto(photo)).length
+}
+
+/** A full http(s) address, the only thing the image schema accepts. */
+export function isHttpUrl(value: string) {
+  return /^https?:\/\/\S+$/i.test(value.trim())
 }
 
 const grouped = new Intl.NumberFormat("en-US")
@@ -113,31 +141,7 @@ export function priceDigitsFrom(input: string) {
   return input.replace(/\D/g, "").replace(/^0+(?=\d)/, "")
 }
 
-/**
- * A fresh copy of the design's draft. Returns a new object (and new photo
- * array) each call so "Discard" can reset without sharing state.
- */
-export function createSeedDraft(): ProductDraft {
-  return {
-    nameMy: "ချည်သား Midi ဂါဝန်",
-    nameEn: "",
-    category: "dresses",
-    price: "45000",
-    stock: 12,
-    descriptionMy:
-      "ပေါ့ပါးသော ချည်သားလေးနဲ့ ချုပ်ထားပါတယ်။ နွေရာသီအတွက် အသင့်တော်ဆုံးပါ။",
-    descriptionEn:
-      "Light breathable cotton midi dress with pockets. True to size — take your usual size.",
-    isActive: true,
-    photos: [
-      { id: "sample-1", url: null },
-      { id: "sample-2", url: null },
-      { id: "sample-3", url: null },
-    ],
-  }
-}
-
-/** A blank draft, used by the banner's "Discard" action. */
+/** A blank draft, used by the add form and by the banner's "Discard" action. */
 export function createBlankDraft(): ProductDraft {
   return {
     nameMy: "",
@@ -145,9 +149,56 @@ export function createBlankDraft(): ProductDraft {
     category: "",
     price: "",
     stock: 0,
+    sizes: [],
     descriptionMy: "",
     descriptionEn: "",
     isActive: true,
     photos: [],
+  }
+}
+
+/** The editor's draft for an existing product (`GET /api/admin/products/:id`). */
+export function draftFromProduct(product: AdminProductDetail): ProductDraft {
+  return {
+    nameMy: product.nameMy,
+    nameEn: product.nameEn,
+    category: product.category.id,
+    price: String(product.priceMmk),
+    stock: product.stock,
+    sizes: [...product.sizes],
+    descriptionMy: product.descriptionMy ?? "",
+    descriptionEn: product.descriptionEn ?? "",
+    isActive: product.isActive,
+    photos: [...product.images]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((image) => ({
+        id: `image-${image.id}`,
+        url: image.url,
+        altText: image.altText,
+      })),
+  }
+}
+
+/**
+ * The create body, also used for `PATCH` — sending every field is the same as
+ * sending only the changed ones, and it keeps the mapping in one place. Images
+ * are a full replacement: the draft's grid is exactly what the product keeps.
+ */
+export function draftToBody(draft: ProductDraft): CreateProductBody {
+  return {
+    nameMy: draft.nameMy.trim(),
+    nameEn: draft.nameEn.trim(),
+    descriptionMy: draft.descriptionMy.trim(),
+    descriptionEn: draft.descriptionEn.trim(),
+    priceMmk: Number(draft.price),
+    stock: draft.stock,
+    sizes: [...draft.sizes],
+    categoryId: draft.category,
+    isActive: draft.isActive,
+    images: draft.photos.filter(isSavedPhoto).map((photo, sortOrder) => ({
+      url: photo.url,
+      altText: photo.altText ?? undefined,
+      sortOrder,
+    })),
   }
 }

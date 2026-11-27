@@ -12,6 +12,8 @@ export const ROUTES = {
   products: "/products",
   /** The add-product editor; static segment, so it outranks any `products/:id`. */
   productNew: "/products/new",
+  /** Pattern only — build concrete links with `productEditPath`. */
+  productEdit: "/products/:id/edit",
   resetPassword: "/reset-password",
   settings: "/settings",
   /** Utility-state preview sheet; deliberately absent from the sidebar. */
@@ -21,6 +23,11 @@ export const ROUTES = {
 /** `/orders/YP-2026-0001` for a given order code. */
 export function orderDetailPath(code: string) {
   return `/orders/${encodeURIComponent(code)}`
+}
+
+/** `/products/cm.../edit` for a given product id. */
+export function productEditPath(id: string) {
+  return `/products/${encodeURIComponent(id)}/edit`
 }
 
 /** Where a signed-in user belongs, given what the server says about them. */

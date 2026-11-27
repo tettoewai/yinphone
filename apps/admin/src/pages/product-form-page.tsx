@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 
+import { FormAlert } from "@/components/form-alert"
 import { BasicInfoCard } from "@/components/product-form/basic-info-card"
 import { DescriptionCard } from "@/components/product-form/description-card"
 import { PhotosCard } from "@/components/product-form/photos-card"
@@ -8,37 +9,68 @@ import { PricingStockCard } from "@/components/product-form/pricing-stock-card"
 import { ProductFormFooter } from "@/components/product-form/product-form-footer"
 import { ProductFormHeader } from "@/components/product-form/product-form-header"
 import { UnsavedChangesBanner } from "@/components/product-form/unsaved-changes-banner"
+import { TableSkeleton } from "@/components/states/dashboard-skeleton"
+import { RequestError } from "@/components/states/request-error"
+import { useCategories } from "@/hooks/use-categories"
+import { useProduct } from "@/hooks/use-product"
+import { ApiError, productsApi } from "@/lib/api"
 import {
   MAX_PHOTOS,
   createBlankDraft,
-  createSeedDraft,
+  draftFromProduct,
+  draftToBody,
   fieldError,
   isDraftBlank,
+  localOnlyPhotoCount,
   missingFields,
   type DraftField,
   type ProductDraft,
 } from "@/lib/product-form"
 import { ROUTES } from "@/lib/routes"
 
+/** Which product the unsaved draft belongs to, so a route change resets it. */
+type EditState = { id: string | null; draft: ProductDraft }
+
 /**
- * Add product (`/products/new`).
+ * The product editor: `/products/new` and `/products/:id/edit`.
  *
- * The whole screen is local state: there is no `POST /api/products` yet, so
- * saving validates the draft and returns to the list rather than pretending to
- * persist anything. Picked photos become object URLs owned by this view and are
- * revoked when they are removed or the page unmounts.
+ * Both modes share the draft shape and the four cards. The add form starts
+ * blank; the edit form is seeded from `GET /api/admin/products/:id` once it
+ * arrives, and every keystroke keeps the result in local state until Save. Save
+ * posts `POST /api/admin/products` or `PATCH /api/admin/products/:id` and then
+ * returns to the list.
  *
- * The draft starts from the design's demo content — one restored draft that is
- * still missing its English name — which is why that field shows its error
- * before it has been touched.
+ * Photos are the one thing the API cannot take from this screen: there is no
+ * upload endpoint, so a picked file previews through an object URL and is left
+ * out of the payload, while a pasted http(s) URL is saved. Those object URLs are
+ * revoked when the photo is removed or the page unmounts.
  */
 export function ProductFormPage() {
+  const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [draft, setDraft] = useState<ProductDraft>(createSeedDraft)
+  const productId = id ?? null
+  const isEdit = productId !== null
+
+  const {
+    product,
+    error: loadError,
+    loading,
+    reload,
+  } = useProduct(productId ?? undefined)
+  const {
+    categories,
+    error: categoriesError,
+    loading: categoriesLoading,
+    reload: reloadCategories,
+  } = useCategories()
+
+  const [edit, setEdit] = useState<EditState | null>(null)
   const [touched, setTouched] = useState<ReadonlySet<DraftField>>(
-    () => new Set<DraftField>(["nameEn"])
+    () => new Set<DraftField>()
   )
   const [attemptedSave, setAttemptedSave] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const objectUrls = useRef<string[]>([])
   const photoSerial = useRef(0)
 
@@ -51,7 +83,19 @@ export function ProductFormPage() {
     []
   )
 
+  /** The server's values, or a blank form in create mode. */
+  function baseDraft() {
+    return product ? draftFromProduct(product) : createBlankDraft()
+  }
+
+  const draft = edit && edit.id === productId ? edit.draft : baseDraft()
   const missing = missingFields(draft)
+  const localOnly = localOnlyPhotoCount(draft.photos)
+  // In edit mode any local change counts; in create mode an emptied form does not.
+  const dirty =
+    edit !== null &&
+    edit.id === productId &&
+    (isEdit || !isDraftBlank(edit.draft))
 
   function errorFor(field: DraftField) {
     return attemptedSave || touched.has(field)
@@ -60,7 +104,11 @@ export function ProductFormPage() {
   }
 
   function update(patch: Partial<ProductDraft>) {
-    setDraft((current) => ({ ...current, ...patch }))
+    setEdit((current) => {
+      const source =
+        current && current.id === productId ? current.draft : baseDraft()
+      return { id: productId, draft: { ...source, ...patch } }
+    })
   }
 
   function blurField(field: DraftField) {
@@ -85,58 +133,81 @@ export function ProductFormPage() {
       photoSerial.current += 1
       const url = URL.createObjectURL(file)
       objectUrls.current.push(url)
-      return { id: `photo-${photoSerial.current}`, url }
+      return { id: `local-${photoSerial.current}`, url, altText: null }
     })
 
-    setDraft((current) => ({
-      ...current,
-      photos: [...current.photos, ...added],
-    }))
+    update({ photos: [...draft.photos, ...added] })
+  }
+
+  function addPhotoUrl(url: string) {
+    if (draft.photos.length >= MAX_PHOTOS) return
+
+    photoSerial.current += 1
+    update({
+      photos: [
+        ...draft.photos,
+        { id: `url-${photoSerial.current}`, url, altText: null },
+      ],
+    })
   }
 
   function removePhoto(id: string) {
     const photo = draft.photos.find((item) => item.id === id)
-    if (photo?.url) {
+    if (photo?.url?.startsWith("blob:")) {
       URL.revokeObjectURL(photo.url)
       objectUrls.current = objectUrls.current.filter((url) => url !== photo.url)
     }
 
-    setDraft((current) => ({
-      ...current,
-      photos: current.photos.filter((item) => item.id !== id),
-    }))
+    update({ photos: draft.photos.filter((item) => item.id !== id) })
   }
 
   function reorderPhotos(from: number, to: number) {
     if (from === to) return
 
-    setDraft((current) => {
-      const next = [...current.photos]
-      const [moved] = next.splice(from, 1)
-      if (!moved) return current
-      next.splice(to, 0, moved)
-      return { ...current, photos: next }
-    })
+    const next = [...draft.photos]
+    const [moved] = next.splice(from, 1)
+    if (!moved) return
+    next.splice(to, 0, moved)
+
+    update({ photos: next })
   }
 
   function discard() {
     for (const url of objectUrls.current) URL.revokeObjectURL(url)
     objectUrls.current = []
-    setDraft(createBlankDraft())
+    setEdit(null)
     setTouched(new Set())
     setAttemptedSave(false)
+    setSaveError(null)
   }
 
-  function save() {
+  async function save() {
     if (missing.length > 0) {
       setAttemptedSave(true)
       setTouched(new Set(missing))
       return
     }
 
-    // No products API yet: the editor's job ends at validation, so saving
-    // leaves the form instead of claiming a product was created.
-    navigate(ROUTES.products)
+    setSaving(true)
+    setSaveError(null)
+
+    try {
+      const body = draftToBody(draft)
+      if (productId) {
+        await productsApi.update(productId, body)
+      } else {
+        await productsApi.create(body)
+      }
+      navigate(ROUTES.products)
+    } catch (failure) {
+      setSaveError(
+        failure instanceof ApiError
+          ? failure.message
+          : "Something went wrong. Please try again."
+      )
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handlers = {
@@ -146,41 +217,92 @@ export function ProductFormPage() {
     onBlurField: blurField,
   }
 
+  const loadingProduct = isEdit && loading
+  const failedToLoad = isEdit && !loading && loadError !== null
+
   return (
     <>
-      <ProductFormHeader requiredLeft={missing.length} />
+      <ProductFormHeader
+        mode={isEdit ? "edit" : "create"}
+        requiredLeft={loadingProduct || failedToLoad ? null : missing.length}
+      />
 
       <main className="flex flex-1 flex-col gap-3 px-4 pt-3 sm:px-6">
-        {isDraftBlank(draft) ? null : (
-          <UnsavedChangesBanner onDiscard={discard} />
-        )}
-
-        <div className="grid items-start gap-4 lg:grid-cols-2">
-          <div className="flex flex-col gap-4">
-            <BasicInfoCard {...handlers} />
-            <PricingStockCard {...handlers} />
-            <DescriptionCard draft={draft} onChange={update} />
-          </div>
-
-          <PhotosCard
-            photos={draft.photos}
-            onAdd={addPhotos}
-            onRemove={removePhoto}
-            onReorder={reorderPhotos}
-            preview={{
-              nameMy: draft.nameMy,
-              nameEn: draft.nameEn,
-              price: draft.price,
-            }}
+        {loadingProduct ? (
+          <TableSkeleton rows={4} className="rounded-lg" />
+        ) : failedToLoad ? (
+          <RequestError
+            detail={
+              loadError instanceof ApiError
+                ? loadError.message
+                : "This product could not be loaded"
+            }
+            onRetry={reload}
           />
-        </div>
+        ) : (
+          <>
+            {saveError ? (
+              <FormAlert
+                title="မသိမ်းနိုင်ပါ • Save failed"
+                detail={saveError}
+              />
+            ) : null}
+
+            {categoriesError ? (
+              <FormAlert
+                title="အမျိုးအစားများ မရနိုင်ပါ • Categories failed to load"
+                detail="The category list could not be fetched, so a category may be missing."
+              >
+                <button
+                  type="button"
+                  onClick={reloadCategories}
+                  className="mt-1 text-xs font-bold text-primary underline underline-offset-4"
+                >
+                  Try again
+                </button>
+              </FormAlert>
+            ) : null}
+
+            {dirty ? <UnsavedChangesBanner onDiscard={discard} /> : null}
+
+            <div className="grid items-start gap-4 lg:grid-cols-2">
+              <div className="flex flex-col gap-4">
+                <BasicInfoCard
+                  {...handlers}
+                  categories={categories ?? []}
+                  categoriesLoading={categoriesLoading}
+                />
+                <PricingStockCard {...handlers} />
+                <DescriptionCard draft={draft} onChange={update} />
+              </div>
+
+              <PhotosCard
+                photos={draft.photos}
+                onAddFiles={addPhotos}
+                onAddUrl={addPhotoUrl}
+                onRemove={removePhoto}
+                onReorder={reorderPhotos}
+                preview={{
+                  nameMy: draft.nameMy,
+                  nameEn: draft.nameEn,
+                  price: draft.price,
+                }}
+              />
+            </div>
+          </>
+        )}
       </main>
 
-      <ProductFormFooter
-        photoCount={draft.photos.length}
-        onCancel={() => navigate(ROUTES.products)}
-        onSave={save}
-      />
+      {loadingProduct || failedToLoad ? null : (
+        <ProductFormFooter
+          mode={isEdit ? "edit" : "create"}
+          photoCount={draft.photos.length}
+          localOnlyCount={localOnly}
+          saving={saving}
+          onCancel={() => navigate(ROUTES.products)}
+          onSave={() => void save()}
+        />
+      )}
     </>
   )
 }
