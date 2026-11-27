@@ -12,9 +12,9 @@ export default async function AboutHero() {
         alt={t("imageAlt")}
         width={900}
         height={675}
-        sizes="(min-width: 448px) 448px, 100vw"
+        sizes="(min-width: 1024px) 1024px, (min-width: 768px) 768px, 100vw"
         priority
-        className="aspect-[4/3] w-full object-cover"
+        className="aspect-[4/3] w-full object-cover md:aspect-[21/9]"
       />
       <div className="absolute right-4 bottom-3 left-4 flex items-center gap-3 rounded-md border border-border bg-card/95 px-4 py-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary">

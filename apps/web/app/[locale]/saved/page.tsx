@@ -27,7 +27,7 @@ export default async function SavedPage() {
   )
 
   return (
-    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body">
+    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body md:max-w-3xl lg:max-w-5xl">
       <SavedView products={products} />
     </div>
   )

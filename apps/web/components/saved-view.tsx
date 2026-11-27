@@ -24,7 +24,7 @@ export default function SavedView({ products }: SavedViewProps) {
     return (
       <>
         <CatalogHeader title={t("title")} subtitle={t("empty.title")} />
-        <div className="grid grid-cols-2 gap-3 px-4 pt-4">
+        <div className="grid grid-cols-2 gap-3 px-4 pt-4 md:grid-cols-3 md:gap-4 md:px-6 lg:grid-cols-4">
           {Array.from({ length: 4 }, (_, index) => (
             <div
               key={index}
@@ -63,7 +63,7 @@ export default function SavedView({ products }: SavedViewProps) {
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between px-4 pt-3 pb-2">
+          <div className="flex items-center justify-between px-4 pt-3 pb-2 md:px-6">
             <div className="text-sm text-muted-foreground">
               {t("count", { count: saved.length })}
             </div>
@@ -75,7 +75,7 @@ export default function SavedView({ products }: SavedViewProps) {
               {t("clearAll")}
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-3 px-4 pb-6">
+          <div className="grid grid-cols-2 gap-3 px-4 pb-6 md:grid-cols-3 md:gap-4 md:px-6 lg:grid-cols-4">
             {saved.map((product) => (
               <CatalogCard key={product.id} product={product} />
             ))}

@@ -27,51 +27,54 @@ export default async function ContactPage() {
   const items = t.raw("faq.items") as FaqItem[]
 
   return (
-    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body">
+    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body md:max-w-3xl lg:max-w-5xl">
       <ContactHeader />
 
-      <section className="flex flex-col gap-2.5 px-4 pt-4">
-        <h2 className="text-sm font-bold text-foreground">
-          {t("quick.title")}
-        </h2>
-        <ContactQuickActions />
-        <p className="text-center font-body text-xs leading-[1.7] text-muted-foreground">
-          {t("quick.hint")}
-        </p>
-      </section>
+      {/* Widened shell for the footer, readable measure for the content. */}
+      <div className="md:mx-auto md:max-w-2xl">
+        <section className="flex flex-col gap-2.5 px-4 pt-4">
+          <h2 className="text-sm font-bold text-foreground">
+            {t("quick.title")}
+          </h2>
+          <ContactQuickActions />
+          <p className="text-center font-body text-xs leading-[1.7] text-muted-foreground">
+            {t("quick.hint")}
+          </p>
+        </section>
 
-      <section className="px-4 pt-5">
-        <ContactAddressCard />
-      </section>
+        <section className="px-4 pt-5">
+          <ContactAddressCard />
+        </section>
 
-      <section aria-label={t("map.label")} className="px-4 pt-3">
-        <ContactMap />
-      </section>
+        <section aria-label={t("map.label")} className="px-4 pt-3">
+          <ContactMap />
+        </section>
 
-      <section className="flex flex-col gap-2.5 px-4 pt-5">
-        <h2 className="font-heading text-base font-bold text-foreground">
-          {t("hours.title")}
-        </h2>
-        <ContactHours />
-      </section>
+        <section className="flex flex-col gap-2.5 px-4 pt-5">
+          <h2 className="font-heading text-base font-bold text-foreground">
+            {t("hours.title")}
+          </h2>
+          <ContactHours />
+        </section>
 
-      <section className="flex flex-col gap-2.5 px-4 pt-5 pb-6">
-        <h2 className="font-heading text-base font-bold text-foreground">
-          {t("faq.title")}
-        </h2>
+        <section className="flex flex-col gap-2.5 px-4 pt-5 pb-6">
+          <h2 className="font-heading text-base font-bold text-foreground">
+            {t("faq.title")}
+          </h2>
 
-        <ContactFaq items={items} />
+          <ContactFaq items={items} />
 
-        <a
-          href={CONTACT.messengerUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-1 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-md bg-messenger text-sm font-bold text-primary-foreground"
-        >
-          <MessageCircle className="size-[17px]" strokeWidth={2.82} />
-          <span className="font-body">{t("askMessenger")}</span>
-        </a>
-      </section>
+          <a
+            href={CONTACT.messengerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-md bg-messenger text-sm font-bold text-primary-foreground"
+          >
+            <MessageCircle className="size-[17px]" strokeWidth={2.82} />
+            <span className="font-body">{t("askMessenger")}</span>
+          </a>
+        </section>
+      </div>
     </div>
   )
 }

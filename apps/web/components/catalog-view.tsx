@@ -167,7 +167,7 @@ export default function CatalogView({
         }}
       />
 
-      <div className="flex gap-2 overflow-x-auto px-4 py-3">
+      <div className="flex gap-2 overflow-x-auto px-4 py-3 md:px-6">
         <FilterChip
           label={categoryLabel?.name ?? t("category")}
           active={Boolean(categoryLabel)}
@@ -197,7 +197,7 @@ export default function CatalogView({
         </button>
       </div>
 
-      <div className="flex items-center justify-between px-4 pb-2">
+      <div className="flex items-center justify-between px-4 pb-2 md:px-6">
         <div className="text-sm text-muted-foreground">
           {t("found", { count: results.length })}
         </div>
@@ -229,7 +229,7 @@ export default function CatalogView({
       </div>
 
       {q ? (
-        <div className="px-4 pb-2 text-xs text-muted-foreground">
+        <div className="px-4 pb-2 text-xs text-muted-foreground md:px-6">
           {t("searchResults", { query: q })}
         </div>
       ) : null}
@@ -238,7 +238,7 @@ export default function CatalogView({
         <div
           aria-busy={isPending}
           className={cn(
-            "grid grid-cols-2 gap-3 px-4 transition-opacity",
+            "grid grid-cols-2 gap-3 px-4 transition-opacity md:grid-cols-3 md:gap-4 md:px-6 lg:grid-cols-4",
             isPending && "opacity-60"
           )}
         >
@@ -247,13 +247,13 @@ export default function CatalogView({
           ))}
         </div>
       ) : (
-        <div className="px-4 pb-6">
+        <div className="px-4 pb-6 md:px-6">
           <EmptyState onClear={clearFilters} />
         </div>
       )}
 
       {results.length > 0 ? (
-        <div className="px-4 pt-4 pb-6">
+        <div className="px-4 pt-4 pb-6 md:px-6">
           {visibleCount < results.length ? (
             <button
               type="button"

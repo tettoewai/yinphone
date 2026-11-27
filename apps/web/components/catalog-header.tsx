@@ -28,7 +28,7 @@ export default function CatalogHeader({
 
   return (
     <header className="border-b border-border bg-background">
-      <div className="flex items-center gap-1 px-3 py-2">
+      <div className="flex items-center gap-1 px-3 py-2 md:px-4">
         <Link
           href="/"
           aria-label={common("goHome")}
@@ -70,7 +70,7 @@ export default function CatalogHeader({
       </div>
 
       {search?.isOpen ? (
-        <form role="search" className="px-4 pb-3">
+        <form role="search" className="px-4 pb-3 md:px-4">
           <label htmlFor="catalog-search" className="sr-only">
             {t("searchLabel")}
           </label>

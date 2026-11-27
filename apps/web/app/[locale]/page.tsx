@@ -2,9 +2,9 @@ import type { Metadata } from "next"
 import { getLocale, getTranslations } from "next-intl/server"
 
 import AppHeader from "@/components/app-header"
+import CatalogCard from "@/components/catalog-card"
 import ContactTeaser from "@/components/contact-teaser"
 import Hero from "@/components/hero"
-import ProductCard from "@/components/product-card"
 import QuickCategories from "@/components/quick-categories"
 import TrustStrip from "@/components/trust-strip"
 import {
@@ -45,12 +45,12 @@ export default async function Page() {
   )
 
   return (
-    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body">
+    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body md:max-w-3xl lg:max-w-5xl">
       <AppHeader />
       <Hero />
 
       <section className="flex flex-col gap-2.5 pt-5">
-        <div className="flex items-center justify-between px-4">
+        <div className="flex items-center justify-between px-4 md:px-6">
           <h2 className="font-heading text-base font-bold text-foreground">
             {t("shopByCategory")}
           </h2>
@@ -66,8 +66,8 @@ export default async function Page() {
       </section>
 
       <section className="flex flex-col gap-3 pt-6">
-        <div className="flex items-end justify-between px-4">
-          <h2 className="font-body text-2xl leading-[1.7] font-bold text-foreground">
+        <div className="flex items-end justify-between px-4 md:px-6">
+          <h2 className="font-body text-2xl leading-[1.7] font-bold text-foreground lg:text-3xl">
             {t("newArrivals")}
           </h2>
           <Link
@@ -78,16 +78,16 @@ export default async function Page() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 px-4">
+        <div className="grid grid-cols-2 gap-3 px-4 md:grid-cols-3 md:gap-4 md:px-6 lg:grid-cols-4">
           {featured.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <CatalogCard key={product.id} product={product} />
           ))}
         </div>
 
-        <div className="px-4">
+        <div className="px-4 md:px-6">
           <Link
             href="/catalog?sort=newest"
-            className="flex min-h-[44px] w-full items-center justify-center rounded-md border border-border bg-card text-sm font-semibold text-primary"
+            className="flex min-h-[44px] w-full items-center justify-center rounded-md border border-border bg-card text-sm font-semibold text-primary md:mx-auto md:max-w-xs"
           >
             {t("viewAllNew")}
           </Link>
@@ -95,16 +95,16 @@ export default async function Page() {
       </section>
 
       <section className="flex flex-col gap-2.5 pt-6">
-        <h2 className="px-4 font-heading text-base font-bold text-foreground">
+        <h2 className="px-4 font-heading text-base font-bold text-foreground md:px-6">
           {t("whyShop")}
         </h2>
-        <div className="px-4">
+        <div className="px-4 md:px-6">
           <TrustStrip />
         </div>
       </section>
 
       <section className="pt-6 pb-6">
-        <div className="px-4">
+        <div className="px-4 md:mx-auto md:max-w-2xl md:px-6">
           <ContactTeaser />
         </div>
       </section>

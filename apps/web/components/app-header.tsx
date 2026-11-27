@@ -18,7 +18,7 @@ export default function AppHeader() {
   const hasFavourites = isReady && count > 0
 
   return (
-    <header className="flex items-center justify-between border-b border-border bg-background/95 px-4 py-3">
+    <header className="flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 md:px-6 lg:px-8">
       <Link
         href="/"
         aria-label={common("home")}

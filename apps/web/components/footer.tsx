@@ -14,7 +14,7 @@ export default function Footer() {
   if (pathname?.startsWith("/products")) return null
 
   return (
-    <footer className="mx-auto flex w-full max-w-md flex-col bg-card px-6 pt-6 pb-10">
+    <footer className="mx-auto flex w-full max-w-md flex-col bg-card px-6 pt-6 pb-10 md:max-w-3xl md:px-8 md:pt-8 lg:max-w-5xl">
       <Link href="/" className="flex items-center gap-2">
         <div className="flex size-10 items-center justify-center rounded-md bg-primary">
           <Image

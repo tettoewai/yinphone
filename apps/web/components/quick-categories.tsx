@@ -21,7 +21,7 @@ export default async function QuickCategories({
   const t = await getTranslations("Catalog")
 
   return (
-    <div className="flex gap-3 overflow-x-auto px-4 py-1">
+    <div className="flex gap-3 overflow-x-auto px-4 py-1 md:flex-wrap md:overflow-visible md:px-6">
       <Link
         href="/catalog"
         className="flex w-[64px] shrink-0 flex-col items-center gap-1.5"
