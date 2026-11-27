@@ -92,7 +92,16 @@ export default function App() {
           <Route path={ROUTES.products} element={<ProductsPage />} />
           <Route path={ROUTES.productNew} element={<ProductFormPage />} />
           <Route path={ROUTES.categories} element={<CategoriesPage />} />
-          <Route path={ROUTES.channels} element={<ChannelsPage />} />
+          {/* Channel links are an OWNER-only write (POST/PATCH), so the screen
+              is gated like Settings rather than letting STAFF hit a 403 on save. */}
+          <Route
+            path={ROUTES.channels}
+            element={
+              <RequireOwner>
+                <ChannelsPage />
+              </RequireOwner>
+            }
+          />
           <Route
             path={ROUTES.settings}
             element={

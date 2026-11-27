@@ -135,8 +135,8 @@ Responds with `{ items, total, limit, offset }`.
 
 ## Admin API (`/api/admin`)
 
-The channels and staff routes are still setup scaffolding and respond `501 Not
-Implemented`. Dashboard, orders, products and categories are implemented. All
+The staff routes are still setup scaffolding and respond `501 Not Implemented`.
+Dashboard, orders, products, categories and channels are implemented. All
 routes require a session (`AdminAuthGuard` + `RolesGuard`); rows marked OWNER
 additionally carry `@Roles('OWNER')`.
 
@@ -270,6 +270,22 @@ products, hidden included).
   the screen writes `sortOrder = index + 1` for every row that moved.
 - `DELETE /api/admin/categories/:id` (OWNER) — `204`. Refused with `409` while
   the category still has products.
+
+### Channels
+
+`GET /api/admin/channels` returns every channel — inactive ones included,
+because the screen's switch edits them in place — ordered by `sortOrder`. Each
+row is `id`, `slug`, `nameMy`, `nameEn`, `url`, `isActive`, `sortOrder` and
+`orderCount` (the past week's orders through it, cancelled included; the same
+seven Asia/Yangon days the dashboard's split covers). The storefront's public
+`GET /api/channels` returns only the active rows, without the count.
+
+- `POST /api/admin/channels` (OWNER) — `slug` derived from `nameEn` (then
+  `nameMy`) when omitted; a missing `sortOrder` appends to the end. A
+  caller-supplied slug that is taken returns `409`.
+- `PATCH /api/admin/channels/:id` (OWNER) — absent fields are left unchanged. The
+  slug is a channel's identity on its orders, so a rename leaves it alone unless
+  a new one is sent; a taken slug returns `409`.
 
 ## Data model
 

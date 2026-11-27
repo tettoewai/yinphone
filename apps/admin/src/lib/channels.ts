@@ -1,24 +1,24 @@
 /**
- * Types, mock rows and the pure helpers behind `/channels`.
+ * Types, the API mapping and the pure helpers behind `/channels`.
  *
- * This is the screen that will own the shop's public chat links, so the mock
- * carries the design's three channels and the exact links it shows — including
- * Telegram's `telegram.me/...`, which fails the `t.me/` rule and is what puts
- * the design's validation warning on screen.
- *
- * `OrderChannel` is what `GET /api/channels` should return. Channel identity is
- * the shared `ChannelSlug` from `lib/orders.ts`, so the dashboard split, the
- * orders table and this screen can never disagree about which channels exist.
- * Nothing here imports React.
+ * The screen owns the shop's public chat links: `GET /api/admin/channels` returns
+ * each channel's slug, names, link and on/off state, and `channelsFromApi` turns
+ * that payload into the rows the cards edit. Channel identity is the shared
+ * `ChannelSlug` from `lib/orders.ts`, so the dashboard split, the orders table
+ * and this screen can never disagree about which channels exist. Nothing here
+ * imports React.
  */
 
-import type { ChannelSlug } from "@/lib/orders"
+import type { AdminChannel } from "@/lib/api"
+import { isChannelSlug, type ChannelSlug } from "@/lib/orders"
 
 export type OrderChannel = {
+  /** Prisma id, used to address the row on save. */
+  id: string
   key: ChannelSlug
   nameMy: string
   nameEn: string
-  /** Sample volume for the meta line; not fetched yet. */
+  /** Orders through this channel in the last seven days. */
   orderCount: number
   /** The shop's public chat link, editable on this screen. */
   link: string
@@ -31,38 +31,6 @@ export type ChannelMessage = {
   my: string
   en: string
 }
-
-/**
- * The design's rows. The counts are sample figures, not the dashboard's
- * channel split, and Telegram starts switched off — which is why the card shows
- * "past orders kept" and the storefront preview labels it "off".
- */
-export const CHANNELS_MOCK: readonly OrderChannel[] = [
-  {
-    key: "messenger",
-    nameMy: "မက်ဆင်ဂျာ",
-    nameEn: "Messenger",
-    orderCount: 14,
-    link: "https://m.me/yinphone.boutique",
-    isEnabled: true,
-  },
-  {
-    key: "viber",
-    nameMy: "ဗိုင်ဘာ",
-    nameEn: "Viber",
-    orderCount: 6,
-    link: "viber://chat?number=959123456789",
-    isEnabled: true,
-  },
-  {
-    key: "telegram",
-    nameMy: "တယ်လီဂရမ်",
-    nameEn: "Telegram",
-    orderCount: 4,
-    link: "telegram.me/yinphone",
-    isEnabled: false,
-  },
-]
 
 type ChannelRule = {
   /** Lowercased prefix a valid link must start with, after the scheme is stripped. */
@@ -186,7 +154,23 @@ export function channelsMatch(
   })
 }
 
-/** A fresh copy of the mock so page state never mutates the module constant. */
-export function channelsFromMock() {
-  return CHANNELS_MOCK.map((channel) => ({ ...channel }))
+/**
+ * Maps `GET /api/admin/channels` rows onto the rows the screen edits. A slug the
+ * icon and colour maps do not know is dropped, because the storefront only ships
+ * the three chat channels and an unknown slug has no glyph to draw.
+ */
+export function channelsFromApi(rows: readonly AdminChannel[]): OrderChannel[] {
+  return rows
+    .filter((row): row is AdminChannel & { slug: ChannelSlug } =>
+      isChannelSlug(row.slug)
+    )
+    .map((row) => ({
+      id: row.id,
+      key: row.slug,
+      nameMy: row.nameMy,
+      nameEn: row.nameEn,
+      orderCount: row.orderCount,
+      link: row.url,
+      isEnabled: row.isActive,
+    }))
 }

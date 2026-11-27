@@ -106,6 +106,17 @@ describe('admin guard wiring', () => {
     expect(response.body).toMatchObject({ code: 'FORBIDDEN' });
   });
 
+  it('lets STAFF read the admin channels', async () => {
+    currentSession = sessionFor('STAFF');
+
+    // Channels is implemented, so passing the guards means an empty list, not 501.
+    const response = await request(app.getHttpServer())
+      .get('/api/admin/channels')
+      .set('Cookie', `${SESSION_COOKIE}=mock-token`)
+      .expect(200);
+    expect(response.body).toEqual([]);
+  });
+
   it('lets OWNER reach the staff routes', async () => {
     currentSession = sessionFor('OWNER');
 

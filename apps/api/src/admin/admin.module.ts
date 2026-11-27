@@ -16,8 +16,9 @@ import { AdminStaffService } from './staff/admin-staff.service.js';
 
 /**
  * The guarded admin surface under `/api/admin/*`. Imports `AuthModule` for
- * `AdminAuthGuard`/`RolesGuard`; `PrismaModule` is global. Service methods are
- * setup stubs (501) until the implementation phase.
+ * `AdminAuthGuard`/`RolesGuard`; `PrismaModule` is global. Dashboard, orders,
+ * products, categories and channels are implemented; the staff service is still
+ * a setup stub (501) until its implementation phase.
  */
 @Module({
   imports: [AuthModule],

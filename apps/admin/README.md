@@ -94,7 +94,7 @@ the `font-body` and `font-heading` utilities.
 (Geist). Without it the `font-body` stack ends in an undefined variable, and the
 whole `font-family` declaration is dropped at computed-value time.
 
-## Dashboard, orders, products and categories
+## Dashboard, orders, products, categories and channels
 
 `/dashboard` is wired to `GET /api/admin/dashboard`: today's orders and takings,
 the all-time NEW/CONFIRMED counts, the seven-day sales chart, the channel split
@@ -104,10 +104,10 @@ signed-in shell, so the sidebar's gold orders chip and the dashboard page read
 the same request. Cancelled orders are excluded from money figures but still
 count in the channel split.
 
-`/orders`, `/orders/:code`, `/products` and `/categories` are wired to the admin
-API (`GET /api/admin/orders`, `GET /api/admin/products`,
-`GET /api/admin/categories`). Filtering, counting, sorting and paging run on the
-server; the screens keep the previous page on screen while a newer request is in
+`/orders`, `/orders/:code`, `/products`, `/categories` and `/channels` are wired
+to the admin API (`GET /api/admin/orders`, `GET /api/admin/products`,
+`GET /api/admin/categories`, `GET /api/admin/channels`). Filtering, counting,
+sorting and paging run on the server; the screens keep the previous page on screen while a newer request is in
 flight (`src/hooks/use-orders.ts`, `use-products.ts`, `use-categories.ts`,
 `use-dashboard.ts`). The search box is debounced by 250 ms and every request is
 abortable.
@@ -125,6 +125,13 @@ writes the new `sortOrder` for every row that moved. Delete stays disabled while
 a category still has products and the API refuses it too. The “Saved” chip
 reports the time of the last successful write. The read-only slug is derived from
 the English name on create and never changes on rename.
+
+`/channels` reads the shop's public chat links from `GET /api/admin/channels` and
+saves the changed rows with `PATCH /api/admin/channels/:id`. Both writes are
+OWNER-only routes, so the screen is wrapped in `RequireOwner` like Settings.
+Edits are overlaid on the fetched rows so a refetch never clobbers a half-typed
+link; “Save channels” writes only the rows whose link or switch changed and then
+refetches. An enabled channel with an invalid link blocks saving.
 
 ## Shared UI
 

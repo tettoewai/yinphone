@@ -459,6 +459,46 @@ export const categoriesApi = {
   },
 }
 
+/** One row of `GET /api/admin/channels`; the channels screen renders it. */
+export type AdminChannel = {
+  id: string
+  slug: string
+  nameMy: string
+  nameEn: string
+  /** The shop's public chat link, editable on the screen. */
+  url: string
+  isActive: boolean
+  sortOrder: number
+  /** Orders through this channel in the last seven Yangon days. */
+  orderCount: number
+}
+
+export type ChannelBody = {
+  nameMy?: string
+  nameEn?: string
+  slug?: string
+  url?: string
+  isActive?: boolean
+  sortOrder?: number
+}
+
+export const channelsApi = {
+  list(signal?: AbortSignal) {
+    return request<AdminChannel[]>("/admin/channels", { signal })
+  },
+
+  create(body: ChannelBody & { nameMy: string; nameEn: string; url: string }) {
+    return request<AdminChannel>("/admin/channels", { method: "POST", body })
+  },
+
+  update(id: string, body: ChannelBody) {
+    return request<AdminChannel>(`/admin/channels/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body,
+    })
+  },
+}
+
 /** One column of `GET /api/admin/dashboard`'s seven-day chart. */
 export type AdminDashboardDay = {
   /** `YYYY-MM-DD` in Asia/Yangon. */
