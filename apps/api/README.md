@@ -135,10 +135,8 @@ Responds with `{ items, total, limit, offset }`.
 
 ## Admin API (`/api/admin`)
 
-The staff routes are still setup scaffolding and respond `501 Not Implemented`.
-Dashboard, orders, products, categories and channels are implemented. All
-routes require a session (`AdminAuthGuard` + `RolesGuard`); rows marked OWNER
-additionally carry `@Roles('OWNER')`.
+Every route requires a session (`AdminAuthGuard` + `RolesGuard`); rows marked
+OWNER additionally carry `@Roles('OWNER')`.
 
 | Method   | Path                                 | Roles         |
 | -------- | ------------------------------------ | ------------- |
@@ -286,6 +284,27 @@ seven Asia/Yangon days the dashboard's split covers). The storefront's public
 - `PATCH /api/admin/channels/:id` (OWNER) — absent fields are left unchanged. The
   slug is a channel's identity on its orders, so a rename leaves it alone unless
   a new one is sent; a taken slug returns `409`.
+
+### Staff
+
+The settings team tab. Every route is OWNER-only.
+
+`GET /api/admin/staff` returns the roster with owners first, then by join date:
+`id`, `email`, `name`, `role`, `mustChangePassword`, `lastLoginAt` (ISO 8601,
+`null` until the first sign-in) and `createdAt`. The password hash is never
+selected.
+
+- `POST /api/admin/staff` — body `{ email, name, role }`; `role` defaults to
+  `STAFF`. The account is created with `mustChangePassword` and a
+  server-generated one-time password, returned once as
+  `{ member, temporaryPassword }` for the owner to pass on out-of-band — there
+  is no email delivery yet. A duplicate email returns `409`.
+- `PATCH /api/admin/staff/:id` — body `{ name?, role? }`; absent fields are left
+  unchanged. Changing your own role returns `403 SELF_ROLE_CHANGE`; demoting the
+  last owner returns `409 LAST_OWNER`.
+- `DELETE /api/admin/staff/:id` — `204`. The member's sessions cascade with the
+  row. Removing your own account returns `403 SELF_REMOVE`; removing the last
+  owner returns `409 LAST_OWNER`.
 
 ## Data model
 

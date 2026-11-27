@@ -12,6 +12,8 @@ import {
 } from '@nestjs/common';
 
 import { AdminAuthGuard } from '../../auth/admin-auth.guard.js';
+import type { AdminView } from '../../auth/auth.service.js';
+import { CurrentAdmin } from '../../auth/current-admin.decorator.js';
 import { Roles } from '../../auth/roles.decorator.js';
 import { RolesGuard } from '../../auth/roles.guard.js';
 import { adminIdSchema } from '../dto/id.param.js';
@@ -44,15 +46,19 @@ export class AdminStaffController {
 
   @Patch(':id')
   update(
+    @CurrentAdmin() admin: AdminView,
     @Param('id', { schema: adminIdSchema }) id: string,
     @Body({ schema: updateStaffSchema }) input: UpdateStaffInput,
   ) {
-    return this.staff.update(id, input);
+    return this.staff.update(admin.id, id, input);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id', { schema: adminIdSchema }) id: string) {
-    return this.staff.remove(id);
+  remove(
+    @CurrentAdmin() admin: AdminView,
+    @Param('id', { schema: adminIdSchema }) id: string,
+  ) {
+    return this.staff.remove(admin.id, id);
   }
 }

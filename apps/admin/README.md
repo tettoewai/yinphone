@@ -33,7 +33,7 @@ index.html          Vite entry document
 design/             Banani design mocks (reference only, not served)
 src/main.tsx        Mounts the app inside ThemeProvider, Router and SessionProvider
 src/App.tsx         Route table and the auth guards
-src/pages/          Sign-in, password reset, dashboard, orders, products, categories
+src/pages/          Sign-in, password reset, dashboard, orders, products, categories, channels, settings
 src/auth/           Session context, provider and route guards
 src/components/     Admin shell, dashboard panels, orders, products, categories, fields
 src/lib/            API client, order/product/category/dashboard types, paging, formatters
@@ -126,12 +126,20 @@ a category still has products and the API refuses it too. The “Saved” chip
 reports the time of the last successful write. The read-only slug is derived from
 the English name on create and never changes on rename.
 
-`/channels` reads the shop's public chat links from `GET /api/admin/channels` and
-saves the changed rows with `PATCH /api/admin/channels/:id`. Both writes are
-OWNER-only routes, so the screen is wrapped in `RequireOwner` like Settings.
-Edits are overlaid on the fetched rows so a refetch never clobbers a half-typed
-link; “Save channels” writes only the rows whose link or switch changed and then
-refetches. An enabled channel with an invalid link blocks saving.
+- `/channels` reads the shop's public chat links from `GET /api/admin/channels` and
+  saves the changed rows with `PATCH /api/admin/channels/:id`. Both writes are
+  OWNER-only routes, so the screen is wrapped in `RequireOwner` like Settings.
+  Edits are overlaid on the fetched rows so a refetch never clobbers a half-typed
+  link; “Save channels” writes only the rows whose link or switch changed and then
+  refetches. An enabled channel with an invalid link blocks saving.
+
+`/settings` keeps the shop profile, logo and opening hours in local state —
+there is no settings endpoint yet — but the team card is live. It reads
+`GET /api/admin/staff`; an invite (`POST`) returns a one-time password that is
+shown once for the owner to pass on, and role changes (`PATCH`) and removals
+(`DELETE`) write through the API and refetch. The screen is OWNER-only, and the
+server refuses to demote or remove the last owner or to change your own role;
+the row controls disable the same cases.
 
 ## Shared UI
 

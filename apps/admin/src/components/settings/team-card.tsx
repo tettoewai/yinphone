@@ -1,6 +1,14 @@
 import { Button } from "@workspace/ui/components/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui/components/dialog"
 import { cn } from "@workspace/ui/lib/utils"
-import { Trash2, UserPlus } from "lucide-react"
+import { Check, Copy, Crown, Trash2, UserPlus, UserRound } from "lucide-react"
 import { useRef, useState } from "react"
 
 import {
@@ -18,28 +26,55 @@ const ROLES: readonly { value: TeamRole; label: string }[] = [
   { value: "OWNER", label: "Owner" },
 ]
 
+/** The invite's result, handed back so the card can show the one-time password. */
+export type InviteOutcome =
+  { ok: true; temporaryPassword: string } | { ok: false; message: string }
+
 type TeamCardProps = {
   members: readonly TeamMember[]
-  onInvite: (email: string, role: TeamRole) => void
-  onRemove: (id: string) => void
+  /** The signed-in owner; their own row has no role switch or trash button. */
+  currentUserId: string
+  /** A write is in flight, so the row actions are disabled. */
+  busy: boolean
+  onInvite: (email: string, role: TeamRole) => Promise<InviteOutcome>
+  /** Resolves `true` when the change was saved. */
+  onChangeRole: (member: TeamMember, role: TeamRole) => Promise<boolean>
+  /** Resolves `true` when the member was removed. */
+  onRemove: (member: TeamMember) => Promise<boolean>
 }
 
 /**
  * Team roster plus the invite panel from the design.
  *
- * The panel is inline rather than in a modal: the design shows its contents so
- * the owner can see both the form and the roster while typing, and this screen
- * has nothing else to cover. An invite only appends a local row — the owner
- * itself can never be removed, which is why its row has no trash button.
+ * The roster is `GET /api/admin/staff`; the panel creates an account and the
+ * API returns its temporary password exactly once, so the card shows it for the
+ * owner to pass on out-of-band. Role switches and removals write through the
+ * API, and the server refuses to demote or remove the last owner or to let an
+ * owner change their own role — the controls here disable those too.
  */
-export function TeamCard({ members, onInvite, onRemove }: TeamCardProps) {
+export function TeamCard({
+  members,
+  currentUserId,
+  busy,
+  onInvite,
+  onChangeRole,
+  onRemove,
+}: TeamCardProps) {
   const emailRef = useRef<HTMLInputElement>(null)
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<TeamRole>(DEFAULT_INVITE_ROLE)
   const [error, setError] = useState<string>()
-  const [invitedTo, setInvitedTo] = useState<string>()
+  const [inviting, setInviting] = useState(false)
+  const [invite, setInvite] = useState<{
+    email: string
+    password: string
+  } | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null)
 
-  function submit() {
+  const ownerCount = members.filter((member) => member.role === "OWNER").length
+
+  async function submit() {
     const clean = email.trim().toLowerCase()
     if (!isValidEmail(clean)) {
       setError("Enter a valid email address • အီးမေးလ် မှန်ကန်စွာ ထည့်ပါ။")
@@ -52,10 +87,42 @@ export function TeamCard({ members, onInvite, onRemove }: TeamCardProps) {
       return
     }
 
-    onInvite(clean, role)
-    setEmail("")
+    setInviting(true)
     setError(undefined)
-    setInvitedTo(clean)
+    setInvite(null)
+    setCopied(false)
+
+    const outcome = await onInvite(clean, role)
+
+    setInviting(false)
+
+    if (!outcome.ok) {
+      setError(outcome.message)
+      return
+    }
+
+    setEmail("")
+    setInvite({ email: clean, password: outcome.temporaryPassword })
+  }
+
+  async function copyPassword() {
+    if (!invite) return
+
+    try {
+      await navigator.clipboard.writeText(invite.password)
+      setCopied(true)
+    } catch {
+      // Clipboard access needs a secure context; the password stays on screen
+      // so the owner can select it by hand.
+      setError("Copy failed — select the password and copy it manually.")
+    }
+  }
+
+  async function confirmRemove() {
+    if (!removeTarget) return
+
+    const removed = await onRemove(removeTarget)
+    if (removed) setRemoveTarget(null)
   }
 
   return (
@@ -78,52 +145,96 @@ export function TeamCard({ members, onInvite, onRemove }: TeamCardProps) {
       </div>
 
       <div className="flex flex-col gap-2 pt-3">
-        {members.map((member) => (
-          <div
-            key={member.id}
-            className="flex items-center gap-3 rounded-md border border-border bg-background px-3.5 py-2.5"
-          >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-secondary text-sm font-bold text-primary">
-              {teammateInitial(member.name)}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-bold text-foreground">
-                {member.name}
-              </div>
-              <div className="truncate text-[11px] text-muted-foreground">
-                {memberMeta(member)}
-              </div>
-            </div>
-            <span
-              className={cn(
-                "shrink-0 rounded-sm px-2 py-0.5 text-[11px] font-bold",
-                member.role === "OWNER"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground"
-              )}
+        {members.map((member) => {
+          const isSelf = member.id === currentUserId
+          const isLastOwner = member.role === "OWNER" && ownerCount <= 1
+
+          return (
+            <div
+              key={member.id}
+              className="flex items-center gap-2 rounded-md border border-border bg-background px-3.5 py-2.5"
             >
-              {member.role === "OWNER" ? "Owner" : "Staff"}
-            </span>
-            {member.role === "STAFF" ? (
-              <button
-                type="button"
-                onClick={() => onRemove(member.id)}
-                aria-label={`Remove ${member.name}`}
-                title={`Remove ${member.name}`}
-                className="flex size-9 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-secondary text-sm font-bold text-primary">
+                {teammateInitial(member.name)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-bold text-foreground">
+                  {member.name}
+                  {isSelf ? (
+                    <span className="pl-1 text-[11px] font-normal text-muted-foreground">
+                      (you)
+                    </span>
+                  ) : null}
+                </div>
+                <div className="truncate text-[11px] text-muted-foreground">
+                  {memberMeta(member)}
+                </div>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 rounded-sm px-2 py-0.5 text-[11px] font-bold",
+                  member.role === "OWNER"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-foreground"
+                )}
               >
-                <Trash2 className="size-[15px]" strokeWidth={3.2} />
-              </button>
-            ) : null}
-          </div>
-        ))}
+                {member.role === "OWNER" ? "Owner" : "Staff"}
+              </span>
+
+              {isSelf ? null : (
+                <button
+                  type="button"
+                  onClick={() =>
+                    void onChangeRole(
+                      member,
+                      member.role === "OWNER" ? "STAFF" : "OWNER"
+                    )
+                  }
+                  disabled={busy || isLastOwner}
+                  aria-label={
+                    member.role === "OWNER"
+                      ? `Make ${member.name} staff`
+                      : `Make ${member.name} an owner`
+                  }
+                  title={
+                    isLastOwner
+                      ? "The shop needs at least one owner"
+                      : member.role === "OWNER"
+                        ? `Make ${member.name} staff`
+                        : `Make ${member.name} an owner`
+                  }
+                  className="flex size-9 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40"
+                >
+                  {member.role === "OWNER" ? (
+                    <UserRound className="size-[15px]" strokeWidth={3.2} />
+                  ) : (
+                    <Crown className="size-[15px]" strokeWidth={3.2} />
+                  )}
+                </button>
+              )}
+
+              {isSelf || isLastOwner ? null : (
+                <button
+                  type="button"
+                  onClick={() => setRemoveTarget(member)}
+                  disabled={busy}
+                  aria-label={`Remove ${member.name}`}
+                  title={`Remove ${member.name}`}
+                  className="flex size-9 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40"
+                >
+                  <Trash2 className="size-[15px]" strokeWidth={3.2} />
+                </button>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <form
         noValidate
         onSubmit={(event) => {
           event.preventDefault()
-          submit()
+          void submit()
         }}
         className="mt-3 rounded-md border-2 border-primary bg-background p-3.5"
       >
@@ -140,7 +251,7 @@ export function TeamCard({ members, onInvite, onRemove }: TeamCardProps) {
               onChange={(event) => {
                 setEmail(event.target.value)
                 setError(undefined)
-                setInvitedTo(undefined)
+                setCopied(false)
               }}
               autoComplete="off"
               placeholder="email • staff@yinphone.shop"
@@ -180,21 +291,95 @@ export function TeamCard({ members, onInvite, onRemove }: TeamCardProps) {
             ))}
           </div>
 
-          {invitedTo ? (
-            <p role="status" className="text-xs font-semibold text-primary">
-              Invite sent to {invitedTo} • added to the team below.
-            </p>
-          ) : null}
-
-          <Button type="submit" className="min-h-12 w-full text-sm font-bold">
-            Send invite
+          <Button
+            type="submit"
+            disabled={inviting || busy}
+            className="min-h-12 w-full text-sm font-bold"
+          >
+            {inviting ? "Sending…" : "Send invite"}
           </Button>
         </div>
       </form>
 
+      {invite ? (
+        <div
+          role="status"
+          className="mt-3 rounded-md border border-primary bg-secondary/40 p-3.5"
+        >
+          <div className="text-[13px] font-bold text-foreground">
+            Invite created for {invite.email}
+          </div>
+          <div className="flex items-center gap-2 pt-2">
+            <code className="min-w-0 flex-1 truncate rounded-sm border border-border bg-background px-2.5 py-1.5 font-mono text-sm text-foreground">
+              {invite.password}
+            </code>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void copyPassword()}
+              className="min-h-9 shrink-0 gap-1.5 px-3 text-xs font-bold"
+            >
+              {copied ? (
+                <Check className="size-3.5" strokeWidth={3.4} />
+              ) : (
+                <Copy className="size-3.5" strokeWidth={3.4} />
+              )}
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          </div>
+          <p className="pt-2 text-[11px] text-muted-foreground">
+            Share this one-time password out-of-band. They must replace it on
+            first sign-in.
+          </p>
+        </div>
+      ) : null}
+
       <p className="pt-2 text-xs text-muted-foreground">
-        Staff cannot see this tab • Owners can remove staff.
+        Staff cannot see this tab • Owners can promote or remove teammates; the
+        last owner always stays.
       </p>
+
+      {removeTarget ? (
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setRemoveTarget(null)
+          }}
+        >
+          <DialogContent>
+            <div className="flex items-start gap-3">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-muted text-accent-foreground">
+                <Trash2 className="size-[19px]" strokeWidth={2.5} />
+              </span>
+              <DialogHeader>
+                <DialogTitle>{removeTarget.name} ကို ဖယ်ရှားမလား?</DialogTitle>
+                <DialogDescription>
+                  {removeTarget.email} သည် ချက်ချင်း ထွက်ပြီး ပြန်ဝင်နိုင်မည်
+                  မဟုတ်ပါ။
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setRemoveTarget(null)}
+                className="min-h-11 px-6 text-sm font-bold"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => void confirmRemove()}
+                disabled={busy}
+                className="min-h-11 gap-1.5 bg-accent px-6 text-sm font-bold text-accent-foreground hover:bg-accent/85"
+              >
+                <Trash2 className="size-[15px]" strokeWidth={3.2} />
+                Remove teammate
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </section>
   )
 }

@@ -1,17 +1,18 @@
 /**
- * Types, mock rows and the pure helpers behind `/settings`.
+ * Types and the pure helpers behind `/settings`.
  *
- * There is no `GET/POST /api/settings` yet, so this screen runs on local state:
- * the shop profile, the team and the opening hours below stand in for what the
- * server will return. Nothing here imports React — the page and its cards own
- * the interactivity, and everything in this module can be unit-tested alone.
+ * The shop profile and opening hours still run on local state: there is no
+ * `GET/POST /api/settings` yet, so the rows below stand in for what the server
+ * will return. The team is the exception — it reads `GET /api/admin/staff`.
+ * Nothing here imports React — the page and its cards own the interactivity,
+ * and everything in this module can be unit-tested alone.
  *
  * Opening hours and the "open now" chip are computed in Asia/Yangon, the shop's
  * fixed UTC+6:30 zone, rather than the browser's, so the preview never disagrees
  * with the storefront.
  */
 
-import { formatClockTime } from "@/lib/yangon-time"
+import { formatClockTime, formatOrderPlaced } from "@/lib/yangon-time"
 
 /** The shop profile shown in the "Shop info" card. */
 export type ShopInfo = {
@@ -58,13 +59,14 @@ export function settingsSectionId(key: SettingsSection) {
 }
 
 export type TeamMember = {
-  /** The lowercased email doubles as the row id — it is already unique. */
   id: string
   name: string
   email: string
   role: TeamRole
-  /** Display string; there is no session API to derive it from yet. */
-  lastLogin: string
+  /** `true` until the invitee replaces the password the owner was shown. */
+  mustChangePassword: boolean
+  /** ISO instant of the last successful sign-in, or `null` before the first. */
+  lastLoginAt: string | null
 }
 
 /** The three account fields, kept together so the rules read one object. */
@@ -99,30 +101,6 @@ export const SHOP_HOURS_MOCK: readonly DaySchedule[] = [
   { weekday: 5, label: "Fri • သောကြာ", opens: "9:00 AM", closes: "8:00 PM" },
   { weekday: 6, label: "Sat • စနေ", opens: "10:00 AM", closes: "7:00 PM" },
   { weekday: 0, label: "Sun • တနင်္ဂနွေ", opens: null, closes: null },
-]
-
-export const TEAM_MOCK: readonly TeamMember[] = [
-  {
-    id: "lumi@yinphone.shop",
-    name: "Ma Lumi",
-    email: "lumi@yinphone.shop",
-    role: "OWNER",
-    lastLogin: "Today 10:12 AM",
-  },
-  {
-    id: "aye@yinphone.shop",
-    name: "Aye Chan",
-    email: "aye@yinphone.shop",
-    role: "STAFF",
-    lastLogin: "Yesterday 6:40 PM",
-  },
-  {
-    id: "min@yinphone.shop",
-    name: "Min Khant",
-    email: "min@yinphone.shop",
-    role: "STAFF",
-    lastLogin: "18 Nov 9:02 AM",
-  },
 ]
 
 /** Default role in the invite panel: the owner is inviting staff, not peers. */
@@ -234,15 +212,17 @@ export function teammateInitial(name: string) {
 }
 
 /**
- * "lumi@yinphone.shop • last login Today 10:12 AM". A freshly invited row has
- * no login to report, so it drops the "last login" prefix instead of claiming
- * one that never happened.
+ * "lumi@yinphone.shop • last login 27 Nov, 10:12 AM". A teammate who has not
+ * signed in yet reports the invite instead, and a row still on its temporary
+ * password says so — that is what the owner has to chase up.
  */
 export function memberMeta(member: TeamMember) {
-  const activity = member.lastLogin.startsWith("Invited")
-    ? member.lastLogin
-    : `last login ${member.lastLogin}`
-  return `${member.email} • ${activity}`
+  const activity = member.lastLoginAt
+    ? `last login ${formatOrderPlaced(member.lastLoginAt)}`
+    : "invited • not signed in yet"
+  const password = member.mustChangePassword ? " • temp password" : ""
+
+  return `${member.email} • ${activity}${password}`
 }
 
 export function isValidEmail(value: string) {
@@ -307,8 +287,4 @@ export function emptyPasswordDraft(): PasswordDraft {
 /** A fresh copy of the mock so page state never mutates the module constant. */
 export function shopInfoFromMock() {
   return { ...SHOP_INFO_MOCK }
-}
-
-export function teamFromMock() {
-  return TEAM_MOCK.map((member) => ({ ...member }))
 }

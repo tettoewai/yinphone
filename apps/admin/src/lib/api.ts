@@ -499,6 +499,62 @@ export const channelsApi = {
   },
 }
 
+/** One row of `GET /api/admin/staff`; the settings team card renders it. */
+export type AdminStaffMember = {
+  id: string
+  email: string
+  name: string
+  role: AdminRole
+  /** True until the invitee replaces the temporary password. */
+  mustChangePassword: boolean
+  /** ISO instant of the last successful sign-in, or `null` before the first. */
+  lastLoginAt: string | null
+  createdAt: string
+}
+
+export type InviteStaffBody = {
+  email: string
+  name: string
+  role: AdminRole
+}
+
+export type InviteStaffResult = {
+  member: AdminStaffMember
+  /** Returned once, for the owner to pass on out-of-band. */
+  temporaryPassword: string
+}
+
+export type UpdateStaffBody = {
+  name?: string
+  role?: AdminRole
+}
+
+export const staffApi = {
+  list(signal?: AbortSignal) {
+    return request<AdminStaffMember[]>("/admin/staff", { signal })
+  },
+
+  invite(body: InviteStaffBody) {
+    return request<InviteStaffResult>("/admin/staff", {
+      method: "POST",
+      body,
+    })
+  },
+
+  update(id: string, body: UpdateStaffBody) {
+    return request<AdminStaffMember>(`/admin/staff/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body,
+    })
+  },
+
+  remove(id: string) {
+    return request<null>(`/admin/staff/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    })
+  },
+}
+
 /** One column of `GET /api/admin/dashboard`'s seven-day chart. */
 export type AdminDashboardDay = {
   /** `YYYY-MM-DD` in Asia/Yangon. */

@@ -2,19 +2,24 @@ import { Button } from "@workspace/ui/components/button"
 import { Plus } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
+import { useSession } from "@/auth/session-context"
 import { AdminPageHeader } from "@/components/admin-page-header"
+import { FormAlert } from "@/components/form-alert"
 import { AccountCard } from "@/components/settings/account-card"
 import { LocationDialog } from "@/components/settings/location-dialog"
 import { SettingsTabs } from "@/components/settings/settings-tabs"
 import { ShopHoursCard } from "@/components/settings/shop-hours-card"
 import { ShopInfoCard } from "@/components/settings/shop-info-card"
-import { TeamCard } from "@/components/settings/team-card"
+import { TeamCard, type InviteOutcome } from "@/components/settings/team-card"
+import { TableSkeleton } from "@/components/states/dashboard-skeleton"
+import { RequestError } from "@/components/states/request-error"
+import { useStaff } from "@/hooks/use-staff"
+import { ApiError, staffApi } from "@/lib/api"
 import {
   SHOP_HOURS_MOCK,
   nameFromEmail,
   settingsSectionId,
   shopInfoFromMock,
-  teamFromMock,
   type SettingsSection,
   type ShopInfo,
   type TeamMember,
@@ -26,22 +31,25 @@ import { formatClockTime } from "@/lib/yangon-time"
  * Settings (`/settings`), the shop profile, hours, team and account in one
  * screen.
  *
- * The whole page is local state: there is no `GET/POST /api/settings` yet, so
- * the profile, roster and opening hours start from the mocks in
- * `lib/settings.ts` and every edit — a field, an invite, a removed teammate, a
- * new map pin — lives here until "Save settings" is pressed. Saving only stamps
- * the time, which is what the subtitle reports.
+ * The shop profile, logo and opening hours are still local state: there is no
+ * `GET/POST /api/settings` yet, so they start from the mocks in
+ * `lib/settings.ts` and every edit lives here until "Save settings" is pressed.
+ * The team is real: it reads `GET /api/admin/staff`, and invites, role changes
+ * and removals write through the API and refetch.
  *
  * The design's "Sample admin by [Your Name]" footer is omitted: the shell owns
  * that chrome on every screen.
  */
 export function SettingsPage() {
+  const { user } = useSession()
+  const { staff, error, loading, reload } = useStaff()
   const [shop, setShop] = useState<ShopInfo>(shopInfoFromMock)
-  const [team, setTeam] = useState<TeamMember[]>(teamFromMock)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [active, setActive] = useState<SettingsSection>("shop")
   const [locationOpen, setLocationOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const logoUrls = useRef<string[]>([])
 
@@ -67,21 +75,64 @@ export function SettingsPage() {
     setLogoUrl(url)
   }
 
-  function inviteMember(email: string, role: TeamRole) {
-    setTeam((current) => [
-      ...current,
-      {
-        id: email,
-        name: nameFromEmail(email),
+  async function inviteMember(
+    email: string,
+    role: TeamRole
+  ): Promise<InviteOutcome> {
+    setSaving(true)
+    setActionError(null)
+
+    try {
+      const { temporaryPassword } = await staffApi.invite({
         email,
+        // The invite panel only collects an email; the API needs a name to
+        // show until the teammate changes it.
+        name: nameFromEmail(email),
         role,
-        lastLogin: "Invited just now",
-      },
-    ])
+      })
+
+      reload()
+      return { ok: true, temporaryPassword }
+    } catch (failure) {
+      return {
+        ok: false,
+        message:
+          failure instanceof ApiError
+            ? failure.message
+            : "Something went wrong. Please try again.",
+      }
+    } finally {
+      setSaving(false)
+    }
   }
 
-  function removeMember(id: string) {
-    setTeam((current) => current.filter((member) => member.id !== id))
+  /** Runs a write, reports a failure, then refetches the roster. */
+  async function run(action: () => Promise<unknown>) {
+    setSaving(true)
+    setActionError(null)
+
+    try {
+      await action()
+      return true
+    } catch (failure) {
+      setActionError(
+        failure instanceof ApiError
+          ? failure.message
+          : "Something went wrong. Please try again."
+      )
+      return false
+    } finally {
+      setSaving(false)
+      reload()
+    }
+  }
+
+  function changeRole(member: TeamMember, role: TeamRole) {
+    return run(() => staffApi.update(member.id, { role }))
+  }
+
+  function removeMember(member: TeamMember) {
+    return run(() => staffApi.remove(member.id))
   }
 
   function selectSection(section: SettingsSection) {
@@ -114,6 +165,13 @@ export function SettingsPage() {
       <main className="flex flex-1 flex-col gap-4 px-4 py-5 sm:px-6">
         <SettingsTabs active={active} onSelect={selectSection} />
 
+        {actionError ? (
+          <FormAlert
+            title="မအောင်မြင်ပါ • Action failed"
+            detail={actionError}
+          />
+        ) : null}
+
         <div className="grid items-start gap-4 lg:grid-cols-2">
           <div className="flex flex-col gap-4">
             <ShopInfoCard
@@ -129,11 +187,23 @@ export function SettingsPage() {
           </div>
 
           <div className="flex flex-col gap-4">
-            <TeamCard
-              members={team}
-              onInvite={inviteMember}
-              onRemove={removeMember}
-            />
+            {error ? (
+              <RequestError
+                detail={error instanceof ApiError ? error.message : undefined}
+                onRetry={reload}
+              />
+            ) : loading ? (
+              <TableSkeleton rows={3} className="rounded-lg" />
+            ) : (
+              <TeamCard
+                members={staff ?? []}
+                currentUserId={user?.id ?? ""}
+                busy={saving}
+                onInvite={inviteMember}
+                onChangeRole={changeRole}
+                onRemove={removeMember}
+              />
+            )}
             <AccountCard />
           </div>
         </div>

@@ -33,8 +33,10 @@ let currentSession: ReturnType<typeof sessionFor> | null = null;
 const prismaStub = {
   $connect: async () => {},
   $disconnect: async () => {},
-  $transaction: async (operations: Promise<unknown>[]) =>
-    Promise.all(operations),
+  $transaction: async (argument: unknown) =>
+    typeof argument === 'function'
+      ? argument(prismaStub)
+      : Promise.all(argument as Promise<unknown>[]),
   adminSession: {
     findUnique: async () => currentSession,
     update: async () => ({}),
@@ -49,6 +51,10 @@ const prismaStub = {
   },
   // The dashboard reads the channel list for its split.
   channel: {
+    findMany: async () => [],
+  },
+  // The staff list needs a (empty) roster once the guards let the call through.
+  adminUser: {
     findMany: async () => [],
   },
 };
@@ -120,9 +126,11 @@ describe('admin guard wiring', () => {
   it('lets OWNER reach the staff routes', async () => {
     currentSession = sessionFor('OWNER');
 
-    await request(app.getHttpServer())
+    // Staff is implemented, so passing the guards means an empty roster, not 501.
+    const response = await request(app.getHttpServer())
       .get('/api/admin/staff')
       .set('Cookie', `${SESSION_COOKIE}=mock-token`)
-      .expect(501);
+      .expect(200);
+    expect(response.body).toEqual([]);
   });
 });

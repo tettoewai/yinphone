@@ -89,17 +89,16 @@ the storefront needs the API and its database running. It reads
 
 `apps/admin` is a Vite + React SPA wired to `@workspace/ui` and the shared
 Tailwind theme. It signs in against this API and ships the dashboard overview,
-the orders list and detail screens, and the products list, categories and
-channels screens. Those screens are live against `/api/admin/*`; only the
-settings screen (shop profile, hours, team) still runs on placeholder data
-until its endpoint and the staff routes land. The design mocks live in
-`apps/admin/design/`.
+the orders list and detail screens, and the products list, categories, channels
+and settings screens. All of them are live against `/api/admin/*`; on settings,
+the shop profile, logo and hours still use placeholder data (there is no
+settings endpoint yet) while the team card reads and writes the staff routes.
+The design mocks live in `apps/admin/design/`.
 
 The admin endpoints live under `/api/admin/*` (dashboard, orders, products,
-categories, channels, staff) behind the session and role guards. The orders,
-products, categories and channels routes are implemented; the staff routes
-still return `501` until they land. See
-[`apps/api/README.md`](apps/api/README.md) for the route and role table.
+categories, channels, staff) behind the session and role guards. Every route is
+implemented. See [`apps/api/README.md`](apps/api/README.md) for the route and
+role table.
 
 ## Environment variables
 

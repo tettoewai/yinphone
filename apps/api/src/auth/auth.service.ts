@@ -6,12 +6,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { argon2id, hash, verify } from 'argon2';
+import { hash, verify } from 'argon2';
 
 import type { AdminRole } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { ChangePasswordInput } from './dto/change-password.schema.js';
 import type { LoginInput } from './dto/login.schema.js';
+import { ARGON2_OPTIONS } from './password-hashing.js';
 import { createSessionToken, hashSessionToken } from './session-token.js';
 
 /**
@@ -20,13 +21,6 @@ import { createSessionToken, hashSessionToken } from './session-token.js';
  */
 const DUMMY_HASH =
   '$argon2id$v=19$m=19456,t=2,p=1$p1wF3mnBrLuQJYwMbM3o0w$OC/zSK7kDguARtCVOCqMIyLxGFB3UjqL5x3V5X716Xo';
-
-const ARGON2_OPTIONS = {
-  type: argon2id,
-  memoryCost: 19456, // 19 MiB, OWASP minimum for argon2id
-  timeCost: 2,
-  parallelism: 1,
-} as const;
 
 /** `lastUsedAt` is only rewritten once it is this stale, to keep reads cheap. */
 const TOUCH_INTERVAL_MS = 5 * 60 * 1000;
