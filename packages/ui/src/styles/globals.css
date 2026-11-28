@@ -5,34 +5,58 @@
 @custom-variant dark (&:is(.dark *));
 @source "../../../../apps/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
-/* The Banani design mocks (e.g. apps/admin/design) are reference-only. Scanning
-   them yields candidates like `aspect-[4:5]`, which compile to invalid CSS and
-   break the minified production build. */
-@source not "../../../../apps/**/*.html";
 
 @theme inline {
-  /* The heading font (Jaguar) has no Myanmar glyphs, so Myanmar heading text
-     falls back to the body font before the Latin sans stack. */
+  /*
+   * Display headings are set in Jaguar (Latin-only), so Myanmar text inside a
+   * heading falls through to the body face before the generic sans stack.
+   * Body copy is Inter for Latin, with the Myanmar face as the fallback — the
+   * order is what makes each script land on the intended family, since CSS has
+   * no per-language font switching.
+   */
   --font-heading:
     var(--font-font-heading), var(--font-font-body), var(--font-sans);
-  --font-body: var(--font-font-body), var(--font-sans);
-  /* Chat ordering channels. Messenger follows the brand primary so it stays
-     legible in both light and dark themes; Viber/Telegram keep their brand
-     colors and are always paired with white text. */
+  --font-body: var(--font-font-latin), var(--font-font-body), var(--font-sans);
+
+  /* Chat channels. Messenger follows the brand primary so it stays legible in
+     both themes; Viber/Telegram keep their brand colours and are always paired
+     with white text. Telegram is darkened from the brand cyan (#2a9cc8) so the
+     13–14px channel labels clear WCAG AA on it. */
   --color-messenger: var(--primary);
   --color-viber: #7b5ea7;
-  --color-telegram: #2a9cc8;
-  /* Brand palette ("Modern Burmese Luxury"). Emerald carries the identity,
-     antique gold is an accent only — never large fills or body text. */
-  --color-brand-emerald: #174c45;
-  --color-brand-gold: #c49a64;
-  --color-brand-ivory: #f8f4ec;
-  --color-brand-beige: #e9dfd0;
-  --color-brand-terracotta: #a66b56;
-  /* Order status accents keep a fixed colour in both themes and are always
-     paired with white text, the same rule the chat channels follow. */
-  --color-success: #2e7d4f;
-  --color-success-foreground: #ffffff;
+  --color-telegram: #1b7ea6;
+
+  /*
+   * Brand palette ("Modern minimal fashion"): warm ivory paper, espresso ink,
+   * muted burgundy as a signature accent, sand and taupe as quiet support.
+   * Burgundy is an accent only — never a page background.
+   */
+  --color-brand-ivory: var(--brand-ivory);
+  --color-brand-espresso: var(--brand-espresso);
+  --color-brand-burgundy: var(--brand-burgundy);
+  --color-brand-sand: var(--brand-sand);
+  --color-brand-taupe: var(--brand-taupe);
+  --color-brand-clay: var(--brand-clay);
+
+  /*
+   * Legacy aliases kept so components written against the earlier blush/plum
+   * palette keep compiling. Each now points at the nearest new role; prefer
+   * the semantic tokens above in new code.
+   */
+  --color-brand-emerald: var(--brand-burgundy);
+  --color-brand-berry: var(--brand-burgundy);
+  --color-brand-gold: var(--brand-taupe);
+  --color-brand-cream: var(--brand-ivory);
+  --color-brand-beige: var(--brand-sand);
+  --color-brand-blush: var(--brand-sand);
+  --color-brand-lavender: var(--brand-sand);
+  --color-brand-plum: var(--brand-espresso);
+  --color-brand-terracotta: var(--brand-clay);
+  --color-brand-rose: var(--brand-clay);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -75,8 +99,6 @@
 }
 
 @theme {
-  /* Loading skeletons (`skeleton.tsx`): a soft highlight sweeping across the
-     muted block. Declared here because the sweep is shared by every screen. */
   --animate-shimmer: shimmer 1.8s ease-in-out infinite;
 
   @keyframes shimmer {
@@ -89,124 +111,155 @@
   }
 }
 
+/*
+ * Light theme — warm ivory paper, espresso ink, burgundy used sparingly.
+ *
+ * Contrast notes (measured, not eyeballed):
+ *   - espresso on ivory 12.72:1, on white 13.98:1
+ *   - muted-foreground stays >= 4.64:1 on every surface it can land on,
+ *     including sand (#e8e1d7) — that is the constraint that fixes its value.
+ *   - burgundy on ivory 7.08:1, white on burgundy 7.78:1
+ *   - border separates from both ivory (1.44:1) and white (1.59:1), and is a
+ *     different colour from secondary so outlined cards on sand keep an edge.
+ */
 :root {
-  /* Backgrounds */
+  color-scheme: light;
 
-  --background: oklch(0.974 0.012 85);
-  --foreground: oklch(0.285 0.018 48);
+  /*
+   * Latin body face. Both apps load the same @fontsource-variable/inter files,
+   * so the family name is stable; see packages/ui/src/styles/fonts.css.
+   */
+  --font-font-latin: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
 
-  --card: oklch(0.995 0.004 85);
-  --card-foreground: oklch(0.285 0.018 48);
+  --background: #f6f4ef;
+  --foreground: #302b28;
 
-  --popover: oklch(0.995 0.004 85);
-  --popover-foreground: oklch(0.285 0.018 48);
+  --card: #ffffff;
+  --card-foreground: #302b28;
 
-  /* Brand: Deep Emerald */
-  --primary: oklch(0.375 0.075 169);
-  --primary-foreground: oklch(0.99 0.005 85);
+  --popover: #ffffff;
+  --popover-foreground: #302b28;
 
-  /* Secondary: Warm Beige */
-  --secondary: oklch(0.925 0.025 78);
-  --secondary-foreground: oklch(0.34 0.055 169);
+  /* Primary: muted burgundy — the signature, reserved for meaningful actions. */
+  --primary: #78434a;
+  --primary-foreground: #ffffff;
 
-  /* Muted */
-  --muted: oklch(0.94 0.018 82);
-  /* Kept dark enough to clear WCAG AA (4.5:1) on --background, --card and
-     --secondary: this token is used for 12-14px hints, not just large text. */
-  --muted-foreground: oklch(0.49 0.025 55);
+  /* Secondary: warm sand surface */
+  --secondary: #e8e1d7;
+  --secondary-foreground: #302b28;
 
-  /* Accent: Antique Gold */
-  --accent: oklch(0.78 0.09 75);
-  --accent-foreground: oklch(0.29 0.025 48);
+  --muted: #f1ede6;
+  --muted-foreground: #6b615b;
 
-  /* Status */
-  --destructive: oklch(0.55 0.2 28);
+  /* Accent: pale burgundy wash, carries the brand without competing with it */
+  --accent: #f2e6e5;
+  --accent-foreground: #78434a;
 
-  /* Borders */
-  --border: oklch(0.89 0.025 78);
-  --input: oklch(0.995 0.004 85);
-  --ring: oklch(0.53 0.085 169);
+  --destructive: #9e3b32;
+  --success: #2f6b45;
+  --success-foreground: #ffffff;
 
-  /* Charts */
-  --chart-1: oklch(0.375 0.075 169);
-  --chart-2: oklch(0.57 0.09 75);
-  --chart-3: oklch(0.55 0.075 35);
-  --chart-4: oklch(0.48 0.04 145);
-  --chart-5: oklch(0.65 0.055 55);
+  --border: #d7ccbb;
+  --input: #ffffff;
+  --ring: #78434a;
 
-  --radius: 0.625rem;
+  --chart-1: #78434a;
+  --chart-2: #7a6a58;
+  --chart-3: #5c6b52;
+  --chart-4: #4e6478;
+  --chart-5: #9a5e68;
 
-  /* Sidebar */
-  --sidebar: oklch(0.96 0.018 82);
-  --sidebar-foreground: oklch(0.285 0.018 48);
-  --sidebar-primary: oklch(0.375 0.075 169);
-  --sidebar-primary-foreground: oklch(0.99 0.005 85);
-  --sidebar-accent: oklch(0.91 0.035 78);
-  --sidebar-accent-foreground: oklch(0.34 0.055 169);
-  --sidebar-border: oklch(0.89 0.025 78);
-  --sidebar-ring: oklch(0.53 0.085 169);
+  --radius: 0.5rem;
+
+  --sidebar: #f2eee7;
+  --sidebar-foreground: #302b28;
+  --sidebar-primary: #78434a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8e1d7;
+  --sidebar-accent-foreground: #302b28;
+  --sidebar-border: #d7ccbb;
+  --sidebar-ring: #78434a;
+
+  --brand-ivory: #f6f4ef;
+  --brand-espresso: #302b28;
+  --brand-burgundy: #78434a;
+  --brand-sand: #e8e1d7;
+  --brand-taupe: #a39483;
+  --brand-clay: #9a5e68;
 }
 
+/*
+ * Dark theme — descends from espresso rather than inverted ivory, with the
+ * burgundy lifting to a dusty rose so it still reads as the accent.
+ *
+ * Contrast notes: foreground 15.68:1 on the background, muted-foreground
+ * >= 6.30:1 on every surface, primary 7.45:1 on the background, and borders
+ * at 12% of the ink land at 2.60–2.74:1 (edges, not text).
+ */
 .dark {
-  /* Backgrounds */
-  --background: oklch(0.19 0.018 165);
-  --foreground: oklch(0.95 0.015 82);
+  color-scheme: dark;
 
-  --card: oklch(0.235 0.02 165);
-  --card-foreground: oklch(0.95 0.015 82);
+  --background: #1b1614;
+  --foreground: #f4efe9;
 
-  --popover: oklch(0.235 0.02 165);
-  --popover-foreground: oklch(0.95 0.015 82);
+  --card: #241e1b;
+  --card-foreground: #f4efe9;
 
-  /* Brand */
-  --primary: oklch(0.72 0.09 165);
-  --primary-foreground: oklch(0.19 0.025 165);
+  --popover: #241e1b;
+  --popover-foreground: #f4efe9;
 
-  /* Secondary */
-  --secondary: oklch(0.29 0.025 165);
-  --secondary-foreground: oklch(0.86 0.035 78);
+  --primary: #d6969f;
+  --primary-foreground: #251819;
 
-  /* Muted */
-  --muted: oklch(0.28 0.02 165);
-  --muted-foreground: oklch(0.72 0.02 78);
+  --secondary: #2c2522;
+  --secondary-foreground: #ede5dc;
 
-  /* Accent */
-  --accent: oklch(0.42 0.055 75);
-  --accent-foreground: oklch(0.95 0.015 82);
+  --muted: #251f1c;
+  --muted-foreground: #ac9f94;
 
-  /* Status */
-  --destructive: oklch(0.65 0.19 28);
+  --accent: #34262a;
+  --accent-foreground: #f3e4e4;
 
-  /* Borders */
-  --border: oklch(0.95 0.015 82 / 12%);
-  --input: oklch(0.95 0.015 82 / 16%);
-  --ring: oklch(0.72 0.09 165);
+  --destructive: #e8776f;
+  --success: #78b48a;
+  --success-foreground: #16110f;
 
-  /* Charts */
-  --chart-1: oklch(0.72 0.09 165);
-  --chart-2: oklch(0.78 0.09 75);
-  --chart-3: oklch(0.68 0.08 35);
-  --chart-4: oklch(0.62 0.06 145);
-  --chart-5: oklch(0.75 0.04 55);
+  --border: rgb(244 239 233 / 12%);
+  --input: rgb(244 239 233 / 16%);
+  --ring: #d6969f;
 
-  /* Sidebar */
-  --sidebar: oklch(0.22 0.02 165);
-  --sidebar-foreground: oklch(0.95 0.015 82);
-  --sidebar-primary: oklch(0.72 0.09 165);
-  --sidebar-primary-foreground: oklch(0.19 0.025 165);
-  --sidebar-accent: oklch(0.29 0.025 165);
-  --sidebar-accent-foreground: oklch(0.86 0.035 78);
-  --sidebar-border: oklch(0.95 0.015 82 / 12%);
-  --sidebar-ring: oklch(0.72 0.09 165);
+  --chart-1: #d6969f;
+  --chart-2: #c9ac8c;
+  --chart-3: #94b096;
+  --chart-4: #8fa3bc;
+  --chart-5: #d99a8c;
+
+  --sidebar: #201a17;
+  --sidebar-foreground: #f4efe9;
+  --sidebar-primary: #d6969f;
+  --sidebar-primary-foreground: #251819;
+  --sidebar-accent: #2c2522;
+  --sidebar-accent-foreground: #ede5dc;
+  --sidebar-border: rgb(244 239 233 / 12%);
+  --sidebar-ring: #d6969f;
+
+  --brand-ivory: #f4efe9;
+  --brand-espresso: #f4efe9;
+  --brand-burgundy: #d6969f;
+  --brand-sand: #2c2522;
+  --brand-taupe: #c2b2a0;
+  --brand-clay: #d99a8c;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background font-body text-foreground;
   }
+
   h1,
   h2,
   h3,

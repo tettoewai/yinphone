@@ -27,7 +27,7 @@ export default async function ContactPage() {
   const items = t.raw("faq.items") as FaqItem[]
 
   return (
-    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body md:max-w-3xl lg:max-w-5xl">
+    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body md:max-w-3xl lg:max-w-7xl">
       <ContactHeader />
 
       {/* Widened shell for the footer, readable measure for the content. */}

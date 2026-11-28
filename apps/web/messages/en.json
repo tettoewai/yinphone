@@ -76,10 +76,10 @@
     "chatWithUs": "Chat with us"
   },
   "Hero": {
-    "badge": "New season • Yangon",
-    "title": "Seasonal fashion",
-    "subtitle": "Seasonal fashion, delivered in Yangon",
-    "shopNow": "Shop now",
+    "badge": "The new collection",
+    "title": "Style that feels like you.",
+    "subtitle": "Modern essentials and timeless pieces for your everyday wardrobe — chosen in Yangon, delivered nationwide.",
+    "shopNow": "Explore collection",
     "imageAlt": "Young woman in a light beige cotton dress in a bright Yangon shop doorway",
     "brandLine": "Timeless Burmese elegance"
   },
@@ -88,6 +88,26 @@
     "newArrivals": "New arrivals",
     "viewAll": "View all",
     "viewAllNew": "View all new arrivals",
+    "announcement": {
+      "delivery": "Nationwide delivery",
+      "order": "Order on Messenger, Viber or Telegram"
+    },
+    "featured": {
+      "eyebrow": "Featured collection",
+      "title": "The everyday edit",
+      "body": "Cotton, linen and silk cut for Yangon weather — easy to wear, easy to order.",
+      "cta": "View collection"
+    },
+    "more": {
+      "title": "More to explore"
+    },
+    "story": {
+      "eyebrow": "Our story",
+      "title": "Made for everyday Yangon",
+      "body": "YinPhone started in 2019 with a small shopfront in Yangon and one idea: well-cut cotton clothing at a fair price, without the markup that comes with a big label.",
+      "body2": "We still choose every piece by hand, publish honest measurements and deliver across Myanmar. Ordering takes a single message — no account, no queue, no hidden fees.",
+      "cta": "Read our story"
+    },
     "whyShop": "Why shop with YinPhone?",
     "longyi": "Longyi",
     "trust": {
@@ -96,6 +116,12 @@
       "exchange": "Exchange within 7 days"
     },
     "footerTagline": "Everyday cotton wear and seasonal fashion — order in seconds."
+  },
+  "Footer": {
+    "shop": "Shop",
+    "chat": "Chat with us",
+    "rights": "YinPhone Boutique Yangon",
+    "location": "Yangon, Myanmar"
   },
   "Catalog": {
     "allItems": "All items",

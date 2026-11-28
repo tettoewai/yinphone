@@ -41,7 +41,7 @@ export default async function AboutPage() {
   ]
 
   return (
-    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body md:max-w-3xl lg:max-w-5xl">
+    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body md:max-w-3xl lg:max-w-7xl">
       <AboutHeader />
       <AboutHero />
 

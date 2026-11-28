@@ -20,6 +20,9 @@ type CatalogCardProps = {
  * the related rail on the product page. It carries no "Order" button on
  * purpose: the grids read as a lookbook, and the per-product CTA lives on the
  * product page's sticky order bar.
+ *
+ * No card chrome: the photo is the card. A 4:5 frame keeps every tile the same
+ * height whatever the source image was shot at.
  */
 export default function CatalogCard({ product }: CatalogCardProps) {
   const { id, image, alt, title, price, badge, compareAtPrice, soldOut } =
@@ -31,21 +34,21 @@ export default function CatalogCard({ product }: CatalogCardProps) {
   const t = useTranslations("Common")
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-md border border-border bg-card">
-      <div className="relative">
+    <article className="group flex h-full flex-col">
+      <div className="relative overflow-hidden rounded-lg bg-secondary">
         <Link href={href} aria-label={title} className="block">
           <Image
             src={image}
             alt={alt}
             width={480}
-            height={640}
-            sizes="(min-width: 768px) 240px, 50vw"
-            className="aspect-[3/4] w-full object-cover"
+            height={600}
+            sizes="(min-width: 1280px) 290px, (min-width: 768px) 30vw, 46vw"
+            className="aspect-[4/5] w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           />
         </Link>
 
         {badge ? (
-          <div className="absolute top-2 left-2 rounded-sm bg-accent px-2 py-1 text-xs font-bold text-accent-foreground">
+          <div className="absolute top-3 left-3 rounded-sm bg-card/95 px-2 py-1 text-[10px] font-semibold tracking-[0.16em] text-primary uppercase">
             {badge}
           </div>
         ) : null}
@@ -57,35 +60,33 @@ export default function CatalogCard({ product }: CatalogCardProps) {
           aria-label={
             favourited ? t("removeFromFavourites") : t("saveToFavourites")
           }
-          className="absolute top-2 right-2 flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card/95"
+          className="absolute top-2.5 right-2.5 flex size-9 items-center justify-center rounded-full bg-card/85 backdrop-blur-sm transition-colors duration-150 hover:bg-card"
         >
           <Heart
             className={cn(
               "size-4",
-              favourited
-                ? "fill-accent-foreground text-accent-foreground"
-                : "text-muted-foreground"
+              favourited ? "fill-primary text-primary" : "text-foreground/70"
             )}
-            strokeWidth={3}
+            strokeWidth={1.9}
           />
         </button>
 
         {soldOut ? (
-          <div className="absolute bottom-2 left-2 rounded-sm bg-foreground/85 px-2 py-1 font-body text-xs leading-[1.7] font-semibold text-primary-foreground">
+          <div className="absolute inset-x-0 bottom-0 bg-card/90 py-2 text-center text-[10px] font-semibold tracking-[0.18em] text-foreground uppercase">
             {t("soldOut")}
           </div>
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col gap-0.5 p-3">
+      <div className="flex flex-1 flex-col gap-1 pt-3">
         <Link
           href={href}
-          className="line-clamp-2 font-body text-sm leading-[1.7] font-bold text-foreground"
+          className="line-clamp-2 text-sm leading-[1.7] font-medium text-foreground transition-colors duration-150 group-hover:text-primary"
         >
           {title}
         </Link>
-        <div className="mt-auto flex items-baseline gap-1.5 pt-1.5">
-          <span className="font-heading text-[15px] font-bold text-primary">
+        <div className="mt-auto flex items-baseline gap-2 pt-1">
+          <span className="text-sm font-semibold text-foreground">
             {formatPrice(price, locale)}
           </span>
           {compareAtPrice ? (

@@ -1,7 +1,14 @@
 /*
  * Myanmar + Latin webfonts, shared by both apps.
  *
- * The storefront loads these through `next/font/local`, which generates its own
+ * The two files below are the Myanmar-capable faces: `font-body.ttf` covers both
+ * Myanmar and Latin, `font-heading.ttf` is Latin-only.
+ *
+ * Latin body copy is Inter, shipped by `@fontsource-variable/inter`. Each app
+ * imports that package once (apps/web layout.tsx, apps/admin main.tsx); the
+ * family name is then referenced by `--font-font-latin` in globals.css.
+ *
+ * The storefront loads the two Myanmar files through `next/font/local`, which generates its own
  * @font-face rules at build time. The admin app is a plain Vite SPA, so it
  * declares them here. Either way the same two CSS variables end up on `:root`,
  * which is what `globals.css` consumes through `@theme inline` to build the

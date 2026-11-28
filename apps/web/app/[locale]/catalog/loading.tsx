@@ -1,6 +1,6 @@
 export default function CatalogLoading() {
   return (
-    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body md:max-w-3xl lg:max-w-5xl">
+    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body md:max-w-3xl lg:max-w-7xl">
       <div className="flex items-center gap-1 border-b border-border px-3 py-2 md:px-4">
         <div className="size-[44px]" />
         <div className="flex flex-1 flex-col items-center gap-1.5">

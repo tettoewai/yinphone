@@ -27,6 +27,12 @@ The `font-body` and `font-heading` utilities are defined in
 `font-body` is applied to `<body>` and `font-heading` to `h1`–`h6` in the base
 layer, so components get the right family without extra classes.
 
+Latin body copy is **Inter**, self-hosted from `@fontsource-variable/inter`.
+Both apps import that package once (web: `app/[locale]/layout.tsx`, admin:
+`src/main.tsx`), and `globals.css` names the family in `--font-font-latin`, so
+`--font-body` resolves to Inter → Myanmar body face → sans stack. Latin glyphs
+stop at Inter; Myanmar glyphs fall through to `font-body.ttf`.
+
 `font-heading.ttf` ("Jaguar") is Latin-only and single-weight, so Myanmar text
 inside headings falls back to `font-body.ttf` ("KoZ 009 Uni"), which covers both
 Myanmar and Latin. Both files ship a single 400 weight — `font-bold` on them is

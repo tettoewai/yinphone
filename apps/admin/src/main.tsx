@@ -1,3 +1,4 @@
+import "@fontsource-variable/inter"
 import "@workspace/ui/fonts.css"
 import "@workspace/ui/globals.css"
 

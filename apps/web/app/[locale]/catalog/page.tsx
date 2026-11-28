@@ -43,7 +43,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   )
 
   return (
-    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body md:max-w-3xl lg:max-w-5xl">
+    <div className="mx-auto w-full max-w-md min-w-0 flex-1 bg-background font-body md:max-w-3xl lg:max-w-7xl">
       <CatalogView
         products={products.map((product) => toCatalogProduct(product, locale))}
         categories={categoryList}

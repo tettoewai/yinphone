@@ -13,21 +13,28 @@ const points: TrustPoint[] = [
   { id: "exchange", icon: Repeat, labelKey: "trust.exchange" },
 ]
 
+/**
+ * The service promises, set as a hairline row rather than a bordered card so it
+ * reads as a footnote to the grids instead of another panel competing with them.
+ */
 export default async function TrustStrip() {
   const t = await getTranslations("Home")
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 md:grid md:grid-cols-3 md:items-center md:gap-4 md:p-5">
-      {points.map(({ id, icon: Icon, labelKey }) => (
-        <div key={id} className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-secondary">
-            <Icon className="size-[18px] text-primary" />
+    <div className="mx-auto w-full max-w-7xl px-4 md:px-6 lg:px-8">
+      <div className="grid gap-5 border-y border-border py-8 md:grid-cols-3 md:gap-8">
+        {points.map(({ id, icon: Icon, labelKey }) => (
+          <div key={id} className="flex items-start gap-3">
+            <Icon
+              className="mt-0.5 size-[18px] shrink-0 text-primary"
+              strokeWidth={1.7}
+            />
+            <span className="text-sm leading-[1.7] font-medium text-foreground">
+              {t(labelKey)}
+            </span>
           </div>
-          <div className="font-body text-sm leading-[1.7] font-medium text-foreground">
-            {t(labelKey)}
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
